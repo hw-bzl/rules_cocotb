@@ -201,7 +201,6 @@ endmodule
 <h3 id="adder_testpy"><a class="header" href="#adder_testpy"><code>adder_test.py</code></a></h3>
 <pre><code class="language-python">import cocotb
 from cocotb.handle import HierarchyObject
-from cocotb.result import TestFailure
 from cocotb.triggers import Timer
 
 
@@ -219,10 +218,11 @@ async def test_adder(dut: HierarchyObject) -&gt; None:
         dut.y.value = y
         dut.carry_in.value = cin
         await Timer(1, units="ns")
-        if int(dut.sum.value) != exp_sum or int(dut.carry_output_bit.value) != exp_cout:
-            raise TestFailure(
-                f"adder mismatch for x={x:#04x} y={y:#04x} cin={cin}"
-            )
+        sum_val = int(dut.sum.value)
+        cout_val = int(dut.carry_output_bit.value)
+        assert sum_val == exp_sum and cout_val == exp_cout, (
+            f"adder mismatch for x={x:#04x} y={y:#04x} cin={cin}"
+        )
 </code></pre>
 <h3 id="buildbazel"><a class="header" href="#buildbazel"><code>BUILD.bazel</code></a></h3>
 <pre><code class="language-python">load("@rules_verilog//verilog:defs.bzl", "verilog_library")
