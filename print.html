@@ -1,0 +1,860 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>rules_cocotb</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">rules_cocotb</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/hw-bzl/rules_cocotb" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="rules_cocotb"><a class="header" href="#rules_cocotb">rules_cocotb</a></h1>
+<p>Bazel rules that run <a href="https://github.com/cocotb/cocotb">cocotb</a> Python
+testbenches against Verilog/SystemVerilog and VHDL modules using
+open-source HDL simulators (Verilator, Icarus Verilog, GHDL).</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>A <code>cocotb_test</code> is a Bazel <code>test</code> target that pairs:</p>
+<ul>
+<li>a Verilog or VHDL <code>*_library</code> target (from
+<a href="https://github.com/hw-bzl/rules_verilog"><code>rules_verilog</code></a> or
+<a href="https://github.com/hw-bzl/rules_vhdl"><code>rules_vhdl</code></a>) as the
+<em>module under test</em>,</li>
+<li>one or more Python <code>cocotb</code> test sources, and</li>
+<li>a <code>cocotb_toolchain</code> that picks the simulator.</li>
+</ul>
+<p>The two top-level rules are documented under
+<a href="./rules.html">Rules</a>; the per-simulator integrations live under
+<a href="./simulators.html">Simulators</a>.</p>
+<h2 id="end-to-end-example"><a class="header" href="#end-to-end-example">End-to-end example</a></h2>
+<p>The walkthrough below builds a tiny 8-bit adder, drives it from a Python
+cocotb testbench, and runs the test with Verilator.</p>
+<h3 id="modulebazel"><a class="header" href="#modulebazel"><code>MODULE.bazel</code></a></h3>
+<pre><code class="language-python">bazel_dep(name = "rules_verilog", version = "1.1.1")
+bazel_dep(name = "rules_cocotb", version = "{version}")
+</code></pre>
+<p><code>rules_cocotb</code> registers a default toolchain
+(<code>//cocotb/toolchain:toolchain</code>) wired to Verilator (default), Icarus
+Verilog, and GHDL. No further <code>register_toolchains</code> call is required to
+use the bundled simulators.</p>
+<h3 id="addersv"><a class="header" href="#addersv"><code>adder.sv</code></a></h3>
+<pre><code class="language-systemverilog">module adder (
+    input  [7:0] x,
+    input  [7:0] y,
+    input        carry_in,
+    output       carry_output_bit,
+    output [7:0] sum
+);
+    logic [8:0] result;
+    assign result           = x + y + carry_in;
+    assign sum              = result[7:0];
+    assign carry_output_bit = result[8];
+endmodule
+</code></pre>
+<h3 id="adder_testpy"><a class="header" href="#adder_testpy"><code>adder_test.py</code></a></h3>
+<pre><code class="language-python">import cocotb
+from cocotb.handle import HierarchyObject
+from cocotb.result import TestFailure
+from cocotb.triggers import Timer
+
+
+@cocotb.test()
+async def test_adder(dut: HierarchyObject) -&gt; None:
+    """Drive a handful of vectors through the 8-bit adder."""
+    vectors = [
+        # (x, y, carry_in, expected_sum, expected_carry_out)
+        (0x00, 0x00, 0, 0x00, 0),
+        (0xFF, 0x01, 0, 0x00, 1),
+        (0x55, 0xAA, 1, 0x00, 1),
+    ]
+    for x, y, cin, exp_sum, exp_cout in vectors:
+        dut.x.value = x
+        dut.y.value = y
+        dut.carry_in.value = cin
+        await Timer(1, units="ns")
+        if int(dut.sum.value) != exp_sum or int(dut.carry_output_bit.value) != exp_cout:
+            raise TestFailure(
+                f"adder mismatch for x={x:#04x} y={y:#04x} cin={cin}"
+            )
+</code></pre>
+<h3 id="buildbazel"><a class="header" href="#buildbazel"><code>BUILD.bazel</code></a></h3>
+<pre><code class="language-python">load("@rules_verilog//verilog:defs.bzl", "verilog_library")
+load("@rules_cocotb//cocotb:cocotb_test.bzl", "cocotb_test")
+
+verilog_library(
+    name = "adder",
+    srcs = ["adder.sv"],
+)
+
+cocotb_test(
+    name = "adder_test",
+    srcs = ["adder_test.py"],
+    module = ":adder",
+    sim = "verilator",
+)
+</code></pre>
+<h3 id="run-it"><a class="header" href="#run-it">Run it</a></h3>
+<pre><code class="language-text">$ bazel test //path/to:adder_test
+//path/to:adder_test                                                     PASSED
+</code></pre>
+<p>To rerun under Icarus instead, change <code>sim = "verilator"</code> to
+<code>sim = "icarus"</code>. To swap to a VHDL toplevel, replace <code>verilog_library</code>
+with <code>vhdl_library</code> from <code>rules_vhdl</code> and pick <code>sim = "ghdl"</code>.</p>
+<h2 id="going-further"><a class="header" href="#going-further">Going further</a></h2>
+<ul>
+<li>The <a href="./cocotb_test.html"><code>cocotb_test</code></a> reference covers the full
+attribute set (<code>params</code>, <code>sim_opts</code>, <code>env</code>, etc.).</li>
+<li>The <a href="./cocotb_toolchain.html"><code>cocotb_toolchain</code></a> reference shows how to
+define a custom toolchain — for selecting a different default
+simulator, narrowing the set of simulators, or wiring in a
+bring-your-own-install <code>cocotb_*_sim</code>.</li>
+<li>The <a href="./simulators.html">Simulators</a> section lists every built-in
+simulator integration and per-simulator status.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="rules"><a class="header" href="#rules">Rules</a></h1>
+<ul>
+<li><a href="./cocotb_test.html">cocotb_test</a></li>
+<li><a href="./cocotb_toolchain.html">cocotb_toolchain</a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
+<p>cocotb_test</p>
+<h2 id="rules-1"><a class="header" href="#rules-1">Rules</a></h2>
+<ul>
+<li><a href="cocotb_test.html#cocotb_test">cocotb_test</a></li>
+</ul>
+<p><a id="cocotb_test"></a></p>
+<h2 id="cocotb_test"><a class="header" href="#cocotb_test">cocotb_test</a></h2>
+<pre>
+load("@rules_cocotb//cocotb:cocotb_test.bzl", "cocotb_test")
+
+cocotb_test(<a href="cocotb_test.html#cocotb_test-name">name</a>, <a href="cocotb_test.html#cocotb_test-deps">deps</a>, <a href="cocotb_test.html#cocotb_test-srcs">srcs</a>, <a href="cocotb_test.html#cocotb_test-data">data</a>, <a href="cocotb_test.html#cocotb_test-env">env</a>, <a href="cocotb_test.html#cocotb_test-module">module</a>, <a href="cocotb_test.html#cocotb_test-params">params</a>, <a href="cocotb_test.html#cocotb_test-precompiled_libs">precompiled_libs</a>, <a href="cocotb_test.html#cocotb_test-sim">sim</a>, <a href="cocotb_test.html#cocotb_test-sim_opts">sim_opts</a>)
+</pre>
+<p>Run a test using <code>cocotb</code> on a given Verilog/VHDL module.</p>
+<p><strong>ATTRIBUTES</strong></p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
+<tr><td style="text-align: left"><a id="cocotb_test-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_test-deps"></a>deps</td><td style="text-align: left">Python dependencies required by the test sources.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_test-srcs"></a>srcs</td><td style="text-align: left">Sources containing the test code to run.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_test-data"></a>data</td><td style="text-align: left">Additional runtime data used by the test.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_test-env"></a>env</td><td style="text-align: left">Environment variables to set for the test.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_test-module"></a>module</td><td style="text-align: left">The Verilog/VHDL module to test.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_test-params"></a>params</td><td style="text-align: left">Verilog parameters or VHDL generics.</td><td style="text-align: left">List of strings</td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_test-precompiled_libs"></a>precompiled_libs</td><td style="text-align: left">Precompiled simulator library sets to link before the test's own compile step. Each target must produce a <code>CocotbPrecompiledLibraryInfo</code> whose <code>format</code> matches this test's resolved simulator's format family (analysis-time check). At runtime the per-format runner patch in <code>cocotb_process_wrapper</code> emits the vendor's link directive (<code>vmap -link</code> for Aldec, <code>-modelsimini</code> for Mentor, etc.) so DUT wrappers that reference libraries inside the precompiled set (e.g. Xilinx's <code>xil_defaultlib</code>) resolve.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_test-sim"></a>sim</td><td style="text-align: left">The name of the simulator to use. Must match a key in the cocotb_toolchain's <code>simulators</code> dict.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>""</code></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_test-sim_opts"></a>sim_opts</td><td style="text-align: left">Additional command line arguments to pass only to the simulator during code-generation.</td><td style="text-align: left">List of strings</td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
+</tbody></table>
+</div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
+<p>cocotb_toolchain</p>
+<h2 id="rules-2"><a class="header" href="#rules-2">Rules</a></h2>
+<ul>
+<li><a href="cocotb_toolchain.html#cocotb_toolchain">cocotb_toolchain</a></li>
+</ul>
+<p><a id="cocotb_toolchain"></a></p>
+<h2 id="cocotb_toolchain"><a class="header" href="#cocotb_toolchain">cocotb_toolchain</a></h2>
+<pre>
+load("@rules_cocotb//cocotb:cocotb_toolchain.bzl", "cocotb_toolchain")
+
+cocotb_toolchain(<a href="cocotb_toolchain.html#cocotb_toolchain-name">name</a>, <a href="cocotb_toolchain.html#cocotb_toolchain-cocotb">cocotb</a>, <a href="cocotb_toolchain.html#cocotb_toolchain-default_sim">default_sim</a>, <a href="cocotb_toolchain.html#cocotb_toolchain-simulators">simulators</a>)
+</pre>
+<p>Define a toolchain for <code>cocotb_*</code> rules.</p>
+<p>The toolchain bundles a <code>cocotb</code> Python library with a set of HDL
+simulators that <code>cocotb_test</code> targets can select between via their <code>sim</code>
+attribute. Register an instance with the standard <code>toolchain(...)</code>
+wrapper to make it discoverable.</p>
+<h3 id="registering-simulators"><a class="header" href="#registering-simulators">Registering simulators</a></h3>
+<p>Each entry in <code>simulators</code> is a <code>cocotb_*_sim</code> target keyed by the
+<em>string</em> name that <code>cocotb_test(sim = ...)</code> will use to select it.
+Names are user-chosen — common conventions are <code>"verilator"</code>,
+<code>"icarus"</code>, <code>"ghdl"</code>. Each name must be unique within the dict.</p>
+<pre><code class="language-python">load("@rules_cocotb//cocotb:cocotb_ghdl_sim.bzl", "cocotb_ghdl_sim")
+load("@rules_cocotb//cocotb:cocotb_icarus_sim.bzl", "cocotb_icarus_sim")
+load("@rules_cocotb//cocotb:cocotb_toolchain.bzl", "cocotb_toolchain")
+load("@rules_cocotb//cocotb:cocotb_verilator_sim.bzl", "cocotb_verilator_sim")
+
+# Instantiate the sim rules you want to ship.
+cocotb_verilator_sim(
+    name = "cocotb_verilator",
+    # ... (see //cocotb/toolchain:BUILD.bazel for the full attr set)
+)
+
+cocotb_ghdl_sim(
+    name = "cocotb_ghdl",
+    ghdl = "@ghdl",
+    vhdl_libs = ["@ghdl//:vhdl_libs_v08"],
+)
+
+cocotb_icarus_sim(
+    name = "cocotb_icarus",
+    iverilog = "@iverilog//:iverilog",
+    vvp = "@iverilog//:vvp",
+    ivl_files = {
+        "@iverilog//:ivl": "ivl",
+        # ... (see //cocotb/toolchain:BUILD.bazel for the full map)
+    },
+)
+
+cocotb_toolchain(
+    name = "my_cocotb_toolchain",
+    cocotb = "//path/to:cocotb_py_library",
+    default_sim = "verilator",
+    simulators = {
+        ":cocotb_ghdl": "ghdl",
+        ":cocotb_icarus": "icarus",
+        ":cocotb_verilator": "verilator",
+    },
+)
+
+toolchain(
+    name = "my_toolchain",
+    toolchain = ":my_cocotb_toolchain",
+    toolchain_type = "@rules_cocotb//cocotb:toolchain_type",
+)
+</code></pre>
+<p>Add <code>register_toolchains("//path/to:my_toolchain")</code> to <code>MODULE.bazel</code>
+ahead of <code>//cocotb/toolchain</code> to override the default. <code>default_sim</code>
+chooses which simulator runs when a <code>cocotb_test</code> omits its own <code>sim</code>
+attribute; it's optional, but if set must name one of the keys in
+<code>simulators</code>.</p>
+<p>Per-simulator API and wiring details live in the
+<a href="./simulators.html">Simulators</a> section.</p>
+<p><strong>ATTRIBUTES</strong></p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
+<tr><td style="text-align: left"><a id="cocotb_toolchain-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_toolchain-cocotb"></a>cocotb</td><td style="text-align: left">The <code>cocotb</code> python library.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_toolchain-default_sim"></a>default_sim</td><td style="text-align: left">An optional default simulator to use.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>""</code></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_toolchain-simulators"></a>simulators</td><td style="text-align: left">A mapping of <code>cocotb_*_sim</code> targets to their matching simulator names. Every target must provide <code>CocotbSimInfo</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: Label -&gt; String</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+</tbody></table>
+</div><div style="break-before: page; page-break-before: always;"></div><h1 id="simulators"><a class="header" href="#simulators">Simulators</a></h1>
+<p>A simulator integration is a Bazel rule that wires a specific HDL
+simulator into the cocotb test harness. <code>cocotb_test</code> doesn't talk to
+simulators directly — it picks one of the simulators registered in the
+active <code>cocotb_toolchain</code> by name (via its <code>sim</code> attribute), and the
+toolchain dispatches compile + run through the matching <code>cocotb_*_sim</code>
+target.</p>
+<p>Each <code>cocotb_*_sim</code> rule produces a <code>CocotbSimInfo</code> provider that the
+shared <code>cocotb_test</code> rule consumes. New simulator integrations can be
+added by writing a rule that returns the same provider and registering
+it in a <code>cocotb_toolchain.simulators</code> dict.</p>
+<h2 id="built-in-integrations"><a class="header" href="#built-in-integrations">Built-in integrations</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Rule</th><th>HDL languages</th><th>Source</th><th>CI-verified</th></tr></thead><tbody>
+<tr><td><a href="./cocotb_verilator_sim.html"><code>cocotb_verilator_sim</code></a></td><td>Verilog / SystemVerilog</td><td>BCR <code>verilator</code> + <code>rules_verilator</code></td><td>✅</td></tr>
+<tr><td><a href="./cocotb_icarus_sim.html"><code>cocotb_icarus_sim</code></a></td><td>Verilog / SystemVerilog</td><td>BCR <code>iverilog</code></td><td>✅</td></tr>
+<tr><td><a href="./cocotb_ghdl_sim.html"><code>cocotb_ghdl_sim</code></a></td><td>VHDL</td><td>BCR <code>ghdl</code></td><td>✅</td></tr>
+<tr><td><a href="./cocotb_nvc_sim.html"><code>cocotb_nvc_sim</code></a></td><td>VHDL</td><td>bring-your-own (no BCR module yet)</td><td>—</td></tr>
+<tr><td><a href="./cocotb_questa_sim.html"><code>cocotb_questa_sim</code></a></td><td>Verilog / SystemVerilog / VHDL</td><td>bring-your-own (commercial; also covers ModelSim)</td><td>—</td></tr>
+<tr><td><a href="./cocotb_xcelium_sim.html"><code>cocotb_xcelium_sim</code></a></td><td>Verilog / SystemVerilog / VHDL</td><td>bring-your-own (commercial; also covers Incisive)</td><td>—</td></tr>
+<tr><td><a href="./cocotb_vcs_sim.html"><code>cocotb_vcs_sim</code></a></td><td>Verilog / SystemVerilog</td><td>bring-your-own (commercial)</td><td>—</td></tr>
+<tr><td><a href="./cocotb_dsim_sim.html"><code>cocotb_dsim_sim</code></a></td><td>Verilog / SystemVerilog / VHDL</td><td>bring-your-own (commercial)</td><td>—</td></tr>
+<tr><td><a href="./cocotb_riviera_sim.html"><code>cocotb_riviera_sim</code></a></td><td>Verilog / SystemVerilog / VHDL</td><td>bring-your-own (commercial)</td><td>—</td></tr>
+<tr><td><a href="./cocotb_activehdl_sim.html"><code>cocotb_activehdl_sim</code></a></td><td>Verilog / SystemVerilog / VHDL</td><td>bring-your-own (commercial; cocotb runner support pending)</td><td>—</td></tr>
+</tbody></table>
+</div>
+<p>The default toolchain (<code>//cocotb/toolchain:toolchain</code>) registers only
+the CI-verified row — Verilator (default), Icarus Verilog, and GHDL.
+For any other simulator, define your own
+<a href="./cocotb_toolchain.html"><code>cocotb_toolchain</code></a> that wires the relevant
+<code>cocotb_*_sim</code> to your install and register it ahead of the default.</p>
+<p>The "CI-verified" column is what <code>rules_cocotb</code>'s own
+<code>//tests/...</code> exercises. The other rules are wired
+correctly against <a href="https://docs.cocotb.org/en/stable/library_reference.html#cocotb_tools.runner">cocotb's runner
+classes</a>,
+but <code>rules_cocotb</code> can't ship the binaries (commercial license or no
+BCR module yet), so we can't validate them ourselves — please file
+issues if you hit problems wiring one up.</p>
+<h3 id="other-simulators"><a class="header" href="#other-simulators">Other simulators</a></h3>
+<p><a href="http://www.tachyon-da.com/index.php/products/cvc-rtl-simulator/">Tachyon DA CVC</a>
+has no <code>cocotb_tools.runner</code> class as of the cocotb version pinned by
+this module, so there's no <code>cocotb_cvc_sim</code> rule. If/when cocotb adds
+runner support upstream we can add the wiring.</p>
+<p>Per-simulator status, known limitations, and any downstream-wiring
+patterns are inline on each simulator's reference page.</p>
+<div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
+<p>cocotb_ghdl_sim</p>
+<h2 id="rules-3"><a class="header" href="#rules-3">Rules</a></h2>
+<ul>
+<li><a href="cocotb_ghdl_sim.html#cocotb_ghdl_sim">cocotb_ghdl_sim</a></li>
+</ul>
+<p><a id="cocotb_ghdl_sim"></a></p>
+<h2 id="cocotb_ghdl_sim"><a class="header" href="#cocotb_ghdl_sim">cocotb_ghdl_sim</a></h2>
+<pre>
+load("@rules_cocotb//cocotb:cocotb_ghdl_sim.bzl", "cocotb_ghdl_sim")
+
+cocotb_ghdl_sim(<a href="cocotb_ghdl_sim.html#cocotb_ghdl_sim-name">name</a>, <a href="cocotb_ghdl_sim.html#cocotb_ghdl_sim-ghdl">ghdl</a>, <a href="cocotb_ghdl_sim.html#cocotb_ghdl_sim-ghdl_prefix">ghdl_prefix</a>, <a href="cocotb_ghdl_sim.html#cocotb_ghdl_sim-vhdl_libs">vhdl_libs</a>)
+</pre>
+<p>A simulator configuration for running <a href="https://ghdl.github.io/ghdl/">GHDL</a>
+simulations in cocotb tests.</p>
+<h3 id="status"><a class="header" href="#status">Status</a></h3>
+<p>Working against the BCR <code>ghdl</code> module from version <code>6.0.0.bcr.1</code> onward,
+which links the <code>ghdl</code> binary with <code>-Wl,--export-dynamic</code> and the
+upstream <code>src/grt/grt.ver</code> version script so cocotb's
+<code>libcocotbvpi_ghdl.so</code> can resolve unprefixed <code>vpi_*</code> symbols at dlopen
+time. Earlier <code>ghdl@6.0.0</code> is missing those linker flags and fails at
+sim time with <code>undefined symbol: vpi_register_cb</code>.</p>
+<p>The backend is selectable with <code>--@ghdl//:backend={mcode, llvm-jit}</code>
+(default <code>mcode</code> on x86_64, <code>llvm-jit</code> elsewhere).</p>
+<h3 id="notes"><a class="header" href="#notes">Notes</a></h3>
+<p>GHDL only supports VHDL (<code>VhdlInfo</code>); pair it with a <code>vhdl_library</code>
+target as the <code>module</code>. The integration is build-at-test-time: cocotb's
+runner runs <code>ghdl -a</code>/<code>-m</code> in a writable build_dir via
+<code>Runner.build()</code>. Pre-compiling at Bazel time isn't viable because the
+JIT backends bake absolute sandbox paths into the <code>.cf</code> files.</p>
+<p>The <code>vhdl_libs</code> attribute should point at the pre-compiled IEEE/std
+libraries from the BCR <code>ghdl</code> module — most projects want
+<code>["@ghdl//:vhdl_libs_v08"]</code>.</p>
+<p><strong>ATTRIBUTES</strong></p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
+<tr><td style="text-align: left"><a id="cocotb_ghdl_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_ghdl_sim-ghdl"></a>ghdl</td><td style="text-align: left">The <code>ghdl</code> binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_ghdl_sim-ghdl_prefix"></a>ghdl_prefix</td><td style="text-align: left">Literal value to set as <code>GHDL_PREFIX</code> at simulation time. Use this for ghdl installs where the prefix is a stable absolute path on disk — typically a system/<code>.deb</code>/Homebrew install (e.g. <code>"/usr/lib/ghdl"</code>).<br><br>When unset (default), <code>GHDL_PREFIX</code> is auto-derived from <code>vhdl_libs</code> if it's populated (BCR-shaped layout), otherwise left unset so ghdl falls back to its own compiled-in search paths.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>""</code></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_ghdl_sim-vhdl_libs"></a>vhdl_libs</td><td style="text-align: left">Pre-compiled VHDL standard libraries (e.g. <code>@ghdl//:vhdl_libs_v08</code>). <strong>Assumes the BCR <code>ghdl</code> module's layout</strong> — <code>&lt;root&gt;/{std,ieee}/v&lt;XX&gt;/&lt;name&gt;-objXX.cf</code> — from which <code>GHDL_PREFIX</code> is derived. If you ship ghdl differently and the IEEE/std libs are already discoverable by the binary, leave this empty and (optionally) set <code>ghdl_prefix</code> to a literal path, or skip both for a system install that uses its compiled-in defaults.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
+</tbody></table>
+</div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
+<p>cocotb_icarus_sim</p>
+<h2 id="rules-4"><a class="header" href="#rules-4">Rules</a></h2>
+<ul>
+<li><a href="cocotb_icarus_sim.html#cocotb_icarus_sim">cocotb_icarus_sim</a></li>
+</ul>
+<p><a id="cocotb_icarus_sim"></a></p>
+<h2 id="cocotb_icarus_sim"><a class="header" href="#cocotb_icarus_sim">cocotb_icarus_sim</a></h2>
+<pre>
+load("@rules_cocotb//cocotb:cocotb_icarus_sim.bzl", "cocotb_icarus_sim")
+
+cocotb_icarus_sim(<a href="cocotb_icarus_sim.html#cocotb_icarus_sim-name">name</a>, <a href="cocotb_icarus_sim.html#cocotb_icarus_sim-iverilog">iverilog</a>, <a href="cocotb_icarus_sim.html#cocotb_icarus_sim-ivl_base">ivl_base</a>, <a href="cocotb_icarus_sim.html#cocotb_icarus_sim-ivl_files">ivl_files</a>, <a href="cocotb_icarus_sim.html#cocotb_icarus_sim-vvp">vvp</a>)
+</pre>
+<p>A simulator configuration for running <a href="https://github.com/steveicarus/iverilog">Icarus
+Verilog</a> binaries in cocotb tests.</p>
+<h3 id="status-1"><a class="header" href="#status-1">Status</a></h3>
+<p>Fully functional. Sourced from the BCR <code>iverilog</code> module
+(<code>bazel_dep(name = "iverilog", version = "13.0.bcr.1")</code>). The default
+toolchain wires <code>iverilog</code>, <code>vvp</code>, and the IVL backend components.
+Exercised end-to-end by the in-tree <code>adder_icarus_test</code>.</p>
+<h3 id="notes-1"><a class="header" href="#notes-1">Notes</a></h3>
+<p>The <code>iverilog</code> driver locates its backend components (<code>ivl</code>,
+<code>vvp.tgt</code>, <code>system.vpi</code>, etc.) via the <code>IVL_BASE</code> environment variable.
+For the BCR <code>iverilog</code> module, the components are exposed as individual
+labels; this rule's <code>ivl_files</code> attribute maps each label to its
+expected filename and assembles them into a directory for <code>IVL_BASE</code>.</p>
+<p>Icarus only supports Verilog/SystemVerilog (<code>VerilogInfo</code>); pair it
+with a <code>verilog_library</code> target as the <code>module</code>.</p>
+<p><strong>ATTRIBUTES</strong></p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
+<tr><td style="text-align: left"><a id="cocotb_icarus_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_icarus_sim-iverilog"></a>iverilog</td><td style="text-align: left">The <code>iverilog</code> compiler binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_icarus_sim-ivl_base"></a>ivl_base</td><td style="text-align: left">A pre-assembled <code>IVL_BASE</code> directory (e.g. a <code>filegroup</code> wrapping <code>/usr/lib/ivl</code> for a system iverilog). The rule sets <code>IVL_BASE</code> to this directory's path during compilation. Mutually exclusive with <code>ivl_files</code>.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>None</code></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_icarus_sim-ivl_files"></a>ivl_files</td><td style="text-align: left">Components to assemble into an <code>IVL_BASE</code> directory. Maps source labels to destination filenames (e.g. <code>{"@iverilog//:ivl": "ivl", "@iverilog//tgt-vvp:vvp_tgt": "vvp.tgt"}</code>). Designed for the BCR <code>iverilog</code> module's per-component layout — for an <code>IVL_BASE</code> directory that already exists on disk, use <code>ivl_base</code> instead. Mutually exclusive with <code>ivl_base</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: Label -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_icarus_sim-vvp"></a>vvp</td><td style="text-align: left">The <code>vvp</code> simulation runner binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+</tbody></table>
+</div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
+<p>cocotb_verilator_sim</p>
+<h2 id="rules-5"><a class="header" href="#rules-5">Rules</a></h2>
+<ul>
+<li><a href="cocotb_verilator_sim.html#cocotb_verilator_sim">cocotb_verilator_sim</a></li>
+</ul>
+<p><a id="cocotb_verilator_sim"></a></p>
+<h2 id="cocotb_verilator_sim"><a class="header" href="#cocotb_verilator_sim">cocotb_verilator_sim</a></h2>
+<pre>
+load("@rules_cocotb//cocotb:cocotb_verilator_sim.bzl", "cocotb_verilator_sim")
+
+cocotb_verilator_sim(<a href="cocotb_verilator_sim.html#cocotb_verilator_sim-name">name</a>, <a href="cocotb_verilator_sim.html#cocotb_verilator_sim-deps">deps</a>, <a href="cocotb_verilator_sim.html#cocotb_verilator_sim-cocotb">cocotb</a>, <a href="cocotb_verilator_sim.html#cocotb_verilator_sim-copy_tree">copy_tree</a>, <a href="cocotb_verilator_sim.html#cocotb_verilator_sim-process_wrapper">process_wrapper</a>, <a href="cocotb_verilator_sim.html#cocotb_verilator_sim-verilator">verilator</a>)
+</pre>
+<p>A simulator configuration for compiling <a href="https://verilator.org/">Verilator</a>
+binaries to be run in cocotb tests.</p>
+<h3 id="status-2"><a class="header" href="#status-2">Status</a></h3>
+<p>Fully functional. Sourced from the <code>verilator</code> and <code>rules_verilator</code> BCR
+modules; the default toolchain wires <code>@verilator//:verilator_executable</code>
+together with cocotb's <code>share/lib/verilator/verilator.cpp</code> entrypoint.
+Used by the in-tree <code>adder_test</code> smoke test, which passes end-to-end.</p>
+<h3 id="notes-2"><a class="header" href="#notes-2">Notes</a></h3>
+<p>Verilator only supports Verilog/SystemVerilog (<code>VerilogInfo</code>); pair it
+with a <code>verilog_library</code> target as the <code>module</code>. The <code>sim_opts</code>
+attribute on <code>cocotb_test</code> is forwarded to the underlying <code>verilator</code>
+invocation — e.g. <code>sim_opts = ["--trace-fst"]</code> enables FST waveform
+capture.</p>
+<p>The BCR verilator binary needs the <code>rules_verilator</code> process wrapper
+to set up its include / lib paths, and cocotb's <code>verilator.cpp</code>
+front-end plus its VPI shared libraries to link against. The rule
+locates those inside the cocotb pip wheel automatically — point
+<code>cocotb</code> at any <code>py_library</code> wrapping <code>@cocotb_pip_deps//cocotb</code> and
+the rule extracts what it needs internally.</p>
+<p><strong>ATTRIBUTES</strong></p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
+<tr><td style="text-align: left"><a id="cocotb_verilator_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_verilator_sim-deps"></a>deps</td><td style="text-align: left">Additional <code>CcInfo</code>-providing dependencies to link into the verilator executable (e.g. <code>@verilator//:verilated</code> and your project's C++ shims).</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_verilator_sim-cocotb"></a>cocotb</td><td style="text-align: left">The cocotb pip package (a <code>py_library</code> wrapping <code>@cocotb_pip_deps//cocotb</code>). Used to extract <code>verilator.cpp</code> and the cocotb VPI shared libraries.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_verilator_sim-copy_tree"></a>copy_tree</td><td style="text-align: left">A tool for copying a tree of files. Defaults to the <code>rules_verilator</code> helper.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>"@rules_verilator//verilator/private:verilator_copy_tree"</code></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_verilator_sim-process_wrapper"></a>process_wrapper</td><td style="text-align: left">A process wrapper for verilator. Defaults to the <code>rules_verilator</code> helper.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>"@rules_verilator//verilator/private:verilator_process_wrapper"</code></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_verilator_sim-verilator"></a>verilator</td><td style="text-align: left">The Verilator binary to use (e.g. <code>@verilator//:verilator_executable</code>).</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+</tbody></table>
+</div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
+<p>cocotb_nvc_sim</p>
+<h2 id="rules-6"><a class="header" href="#rules-6">Rules</a></h2>
+<ul>
+<li><a href="cocotb_nvc_sim.html#cocotb_nvc_sim">cocotb_nvc_sim</a></li>
+</ul>
+<p><a id="cocotb_nvc_sim"></a></p>
+<h2 id="cocotb_nvc_sim"><a class="header" href="#cocotb_nvc_sim">cocotb_nvc_sim</a></h2>
+<pre>
+load("@rules_cocotb//cocotb:cocotb_nvc_sim.bzl", "cocotb_nvc_sim")
+
+cocotb_nvc_sim(<a href="cocotb_nvc_sim.html#cocotb_nvc_sim-name">name</a>, <a href="cocotb_nvc_sim.html#cocotb_nvc_sim-nvc">nvc</a>)
+</pre>
+<p>A simulator configuration for running <a href="https://www.nickg.me.uk/nvc/">NVC</a>
+(open-source VHDL simulator) in cocotb tests.</p>
+<h3 id="status-3"><a class="header" href="#status-3">Status</a></h3>
+<p>Infrastructure only. NVC is open source but does not yet have a BCR
+module, so <code>rules_cocotb</code> cannot ship a default toolchain wired to it.
+Wire it up downstream by pointing <code>nvc</code> at a <code>new_local_repository</code> /
+<code>sh_binary</code> wrapper around a system install (or a custom Bazel build)
+and registering a <code>cocotb_toolchain</code> that routes <code>sim = "nvc"</code> through
+this rule. Cocotb's runner handles the actual build/sim via
+<code>Runner.build</code> / <code>Runner.test</code>.</p>
+<h3 id="notes-3"><a class="header" href="#notes-3">Notes</a></h3>
+<p>NVC only supports VHDL (<code>VhdlInfo</code>); pair it with a <code>vhdl_library</code>
+target as the <code>module</code>.</p>
+<p><strong>ATTRIBUTES</strong></p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
+<tr><td style="text-align: left"><a id="cocotb_nvc_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_nvc_sim-nvc"></a>nvc</td><td style="text-align: left">The <code>nvc</code> simulator binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+</tbody></table>
+</div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
+<p>cocotb_questa_sim</p>
+<h2 id="rules-7"><a class="header" href="#rules-7">Rules</a></h2>
+<ul>
+<li><a href="cocotb_questa_sim.html#cocotb_questa_sim">cocotb_questa_sim</a></li>
+</ul>
+<p><a id="cocotb_questa_sim"></a></p>
+<h2 id="cocotb_questa_sim"><a class="header" href="#cocotb_questa_sim">cocotb_questa_sim</a></h2>
+<pre>
+load("@rules_cocotb//cocotb:cocotb_questa_sim.bzl", "cocotb_questa_sim")
+
+cocotb_questa_sim(<a href="cocotb_questa_sim.html#cocotb_questa_sim-name">name</a>, <a href="cocotb_questa_sim.html#cocotb_questa_sim-vcom">vcom</a>, <a href="cocotb_questa_sim.html#cocotb_questa_sim-vlib">vlib</a>, <a href="cocotb_questa_sim.html#cocotb_questa_sim-vlog">vlog</a>, <a href="cocotb_questa_sim.html#cocotb_questa_sim-vsim">vsim</a>)
+</pre>
+<p>A simulator configuration for running <a href="https://eda.sw.siemens.com/en-US/ic/questa/">Mentor/Siemens
+EDA Questa</a> (and the older
+ModelSim — cocotb uses the same <code>questa</code> runner for both) simulations
+in cocotb tests.</p>
+<h3 id="status-4"><a class="header" href="#status-4">Status</a></h3>
+<p>Infrastructure only. Questa/ModelSim is commercial, with no BCR
+module and no redistributable binary; <code>rules_cocotb</code> cannot validate
+this rule in CI. Wire it up downstream by pointing the binary attrs at
+your own install (e.g. via <code>new_local_repository</code> over <code>$MODEL_TECH</code> or
+the equivalent Questa install directory) and registering a
+<code>cocotb_toolchain</code> that routes <code>sim = "questa"</code> through this rule.
+Cocotb's runner handles the actual build/sim via <code>Runner.build</code> /
+<code>Runner.test</code>.</p>
+<h3 id="notes-4"><a class="header" href="#notes-4">Notes</a></h3>
+<p>Questa accepts both Verilog/SystemVerilog (<code>VerilogInfo</code>) and VHDL
+(<code>VhdlInfo</code>) modules. The rule defers the <code>vlib</code> / <code>vlog</code> / <code>vcom</code>
+invocations to cocotb's runner at test time rather than running them
+during the Bazel build, so the simulator only needs to be present on
+the test execution environment.</p>
+<p><strong>ATTRIBUTES</strong></p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
+<tr><td style="text-align: left"><a id="cocotb_questa_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_questa_sim-vcom"></a>vcom</td><td style="text-align: left">The <code>vcom</code> VHDL compiler binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_questa_sim-vlib"></a>vlib</td><td style="text-align: left">The <code>vlib</code> library manager binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_questa_sim-vlog"></a>vlog</td><td style="text-align: left">The <code>vlog</code> Verilog/SystemVerilog compiler binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_questa_sim-vsim"></a>vsim</td><td style="text-align: left">The <code>vsim</code> simulator binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+</tbody></table>
+</div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
+<p>cocotb_xcelium_sim</p>
+<h2 id="rules-8"><a class="header" href="#rules-8">Rules</a></h2>
+<ul>
+<li><a href="cocotb_xcelium_sim.html#cocotb_xcelium_sim">cocotb_xcelium_sim</a></li>
+</ul>
+<p><a id="cocotb_xcelium_sim"></a></p>
+<h2 id="cocotb_xcelium_sim"><a class="header" href="#cocotb_xcelium_sim">cocotb_xcelium_sim</a></h2>
+<pre>
+load("@rules_cocotb//cocotb:cocotb_xcelium_sim.bzl", "cocotb_xcelium_sim")
+
+cocotb_xcelium_sim(<a href="cocotb_xcelium_sim.html#cocotb_xcelium_sim-name">name</a>, <a href="cocotb_xcelium_sim.html#cocotb_xcelium_sim-xrun">xrun</a>)
+</pre>
+<p>A simulator configuration for running <a href="https://www.cadence.com/en_US/home/tools/system-design-and-verification/simulation-and-testbench-verification/xcelium-simulator.html">Cadence
+Xcelium</a>
+(and the older Incisive — cocotb uses the same <code>xcelium</code> runner for
+both) simulations in cocotb tests.</p>
+<h3 id="status-5"><a class="header" href="#status-5">Status</a></h3>
+<p>Infrastructure only. Xcelium/Incisive is commercial, with no BCR
+module and no redistributable binary; <code>rules_cocotb</code> cannot validate
+this rule in CI. Wire it up downstream by pointing <code>xrun</code> at your own
+install and registering a <code>cocotb_toolchain</code> that routes
+<code>sim = "xcelium"</code> through this rule. Cocotb's runner handles the
+actual build/sim via <code>Runner.build</code> / <code>Runner.test</code>.</p>
+<h3 id="notes-5"><a class="header" href="#notes-5">Notes</a></h3>
+<p>Xcelium accepts both Verilog/SystemVerilog (<code>VerilogInfo</code>) and VHDL
+(<code>VhdlInfo</code>) modules. The <code>xrun</code> driver dispatches to the appropriate
+compiler internally, so only the one binary attr is needed.</p>
+<p><strong>ATTRIBUTES</strong></p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
+<tr><td style="text-align: left"><a id="cocotb_xcelium_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_xcelium_sim-xrun"></a>xrun</td><td style="text-align: left">The <code>xrun</code> driver binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+</tbody></table>
+</div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
+<p>cocotb_vcs_sim</p>
+<h2 id="rules-9"><a class="header" href="#rules-9">Rules</a></h2>
+<ul>
+<li><a href="cocotb_vcs_sim.html#cocotb_vcs_sim">cocotb_vcs_sim</a></li>
+</ul>
+<p><a id="cocotb_vcs_sim"></a></p>
+<h2 id="cocotb_vcs_sim"><a class="header" href="#cocotb_vcs_sim">cocotb_vcs_sim</a></h2>
+<pre>
+load("@rules_cocotb//cocotb:cocotb_vcs_sim.bzl", "cocotb_vcs_sim")
+
+cocotb_vcs_sim(<a href="cocotb_vcs_sim.html#cocotb_vcs_sim-name">name</a>, <a href="cocotb_vcs_sim.html#cocotb_vcs_sim-vcs">vcs</a>)
+</pre>
+<p>A simulator configuration for running <a href="https://www.synopsys.com/verification/simulation/vcs.html">Synopsys
+VCS</a>
+simulations in cocotb tests.</p>
+<h3 id="status-6"><a class="header" href="#status-6">Status</a></h3>
+<p>Infrastructure only. VCS is commercial, with no BCR module and no
+redistributable binary; <code>rules_cocotb</code> cannot validate this rule in
+CI. Wire it up downstream by pointing <code>vcs</code> at your own install and
+registering a <code>cocotb_toolchain</code> that routes <code>sim = "vcs"</code> through
+this rule. Cocotb's runner handles the actual build/sim (cocotb's VCS
+runner produces a <code>simv</code> binary and executes it for the run).</p>
+<h3 id="notes-6"><a class="header" href="#notes-6">Notes</a></h3>
+<p>VCS accepts Verilog/SystemVerilog (<code>VerilogInfo</code>) modules. The cocotb
+runner internally manages <code>vcs</code>'s build flow and the <code>simv</code> output
+binary, so only the <code>vcs</code> compiler binary is needed as a rule
+attribute.</p>
+<p><strong>ATTRIBUTES</strong></p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
+<tr><td style="text-align: left"><a id="cocotb_vcs_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_vcs_sim-vcs"></a>vcs</td><td style="text-align: left">The <code>vcs</code> compiler binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+</tbody></table>
+</div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
+<p>cocotb_dsim_sim</p>
+<h2 id="rules-10"><a class="header" href="#rules-10">Rules</a></h2>
+<ul>
+<li><a href="cocotb_dsim_sim.html#cocotb_dsim_sim">cocotb_dsim_sim</a></li>
+</ul>
+<p><a id="cocotb_dsim_sim"></a></p>
+<h2 id="cocotb_dsim_sim"><a class="header" href="#cocotb_dsim_sim">cocotb_dsim_sim</a></h2>
+<pre>
+load("@rules_cocotb//cocotb:cocotb_dsim_sim.bzl", "cocotb_dsim_sim")
+
+cocotb_dsim_sim(<a href="cocotb_dsim_sim.html#cocotb_dsim_sim-name">name</a>, <a href="cocotb_dsim_sim.html#cocotb_dsim_sim-dsim">dsim</a>)
+</pre>
+<p>A simulator configuration for running <a href="https://www.metrics.ca/dsim/">Siemens
+DSim</a> (formerly Metrics DSim) simulations
+in cocotb tests.</p>
+<h3 id="status-7"><a class="header" href="#status-7">Status</a></h3>
+<p>Infrastructure only. DSim is commercial, with no BCR module and no
+redistributable binary; <code>rules_cocotb</code> cannot validate this rule in
+CI. Wire it up downstream by pointing <code>dsim</code> at your own install and
+registering a <code>cocotb_toolchain</code> that routes <code>sim = "dsim"</code> through
+this rule. Cocotb's runner handles the actual build/sim via
+<code>Runner.build</code> / <code>Runner.test</code>.</p>
+<h3 id="notes-7"><a class="header" href="#notes-7">Notes</a></h3>
+<p>DSim accepts both Verilog/SystemVerilog (<code>VerilogInfo</code>) and VHDL
+(<code>VhdlInfo</code>) modules. The <code>dsim</code> driver handles compile and run
+phases internally, so only the one binary attr is needed.</p>
+<p><strong>ATTRIBUTES</strong></p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
+<tr><td style="text-align: left"><a id="cocotb_dsim_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_dsim_sim-dsim"></a>dsim</td><td style="text-align: left">The <code>dsim</code> simulator binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+</tbody></table>
+</div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
+<p>cocotb_riviera_sim</p>
+<h2 id="rules-11"><a class="header" href="#rules-11">Rules</a></h2>
+<ul>
+<li><a href="cocotb_riviera_sim.html#cocotb_riviera_sim">cocotb_riviera_sim</a></li>
+</ul>
+<p><a id="cocotb_riviera_sim"></a></p>
+<h2 id="cocotb_riviera_sim"><a class="header" href="#cocotb_riviera_sim">cocotb_riviera_sim</a></h2>
+<pre>
+load("@rules_cocotb//cocotb:cocotb_riviera_sim.bzl", "cocotb_riviera_sim")
+
+cocotb_riviera_sim(<a href="cocotb_riviera_sim.html#cocotb_riviera_sim-name">name</a>, <a href="cocotb_riviera_sim.html#cocotb_riviera_sim-vsimsa">vsimsa</a>)
+</pre>
+<p>A simulator configuration for running Aldec Riviera-PRO simulations in
+cocotb tests.</p>
+<h3 id="status-8"><a class="header" href="#status-8">Status</a></h3>
+<p>Infrastructure only. Riviera-PRO is commercial, with no BCR module and
+no redistributable binary; <code>rules_cocotb</code> cannot validate this rule in
+CI. Wire it up downstream by pointing the binary attrs at your own
+install and registering a <code>cocotb_toolchain</code> that routes
+<code>sim = "riviera"</code> through this rule. Cocotb's runner handles the
+actual build/sim via <code>Runner.build</code> / <code>Runner.test</code>.</p>
+<h3 id="downstream-wiring"><a class="header" href="#downstream-wiring">Downstream wiring</a></h3>
+<p>Expose <code>vsimsa</code> to Bazel and register a custom <code>cocotb_toolchain</code>.
+<code>vsimsa</code> is the only binary cocotb's Riviera runner invokes; the rest
+of the Aldec install (alib/alog/acom/asim engines, libraries, license
+config) is loaded internally by vsimsa through <code>$RIVIERA_HOME</code>. Pull
+those into the action sandbox by attaching them as <code>data</code> on the
+<code>vsimsa</code> target — anything reachable through its runfiles will be
+staged alongside the binary.</p>
+<p>Typically this means a local repository (e.g. <code>new_local_repository</code>
+or a custom repository rule pointed at <code>$RIVIERA_HOME</code>) whose
+<code>BUILD.bazel</code> wraps <code>vsimsa</code> as a <code>native_binary</code> (or <code>sh_binary</code>)
+target with the rest of the install as its <code>data</code> deps, then:</p>
+<pre><code class="language-python">load("@rules_cocotb//cocotb:cocotb_riviera_sim.bzl", "cocotb_riviera_sim")
+load("@rules_cocotb//cocotb:cocotb_toolchain.bzl", "cocotb_toolchain")
+
+cocotb_riviera_sim(
+    name = "cocotb_riviera",
+    vsimsa = "@riviera//:vsimsa",
+)
+
+cocotb_toolchain(
+    name = "my_cocotb_toolchain",
+    cocotb = "//path/to:cocotb_py_library",
+    simulators = {":cocotb_riviera": "riviera"},
+)
+</code></pre>
+<p>Then <code>register_toolchains("//path/to:my_cocotb_toolchain")</code> in
+<code>MODULE.bazel</code> (ahead of the default <code>//cocotb/toolchain</code> registration)
+and <code>cocotb_test(sim = "riviera", ...)</code> will resolve through it.</p>
+<p>Riviera-PRO accepts both Verilog/SystemVerilog (<code>VerilogInfo</code>) and VHDL
+(<code>VhdlInfo</code>) modules.</p>
+<p><strong>ATTRIBUTES</strong></p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
+<tr><td style="text-align: left"><a id="cocotb_riviera_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_riviera_sim-vsimsa"></a>vsimsa</td><td style="text-align: left">The <code>vsimsa</code> standalone batch simulator binary. Cocotb's Riviera runner invokes only <code>vsimsa</code>; the rest of the Aldec install (alib/alog/acom/asim engines, libraries, license config) is loaded internally by vsimsa via <code>$RIVIERA_HOME</code>. Attach those install files as <code>data</code> deps on the target you pass here so they're staged alongside the binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+</tbody></table>
+</div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
+<p>cocotb_activehdl_sim</p>
+<h2 id="rules-12"><a class="header" href="#rules-12">Rules</a></h2>
+<ul>
+<li><a href="cocotb_activehdl_sim.html#cocotb_activehdl_sim">cocotb_activehdl_sim</a></li>
+</ul>
+<p><a id="cocotb_activehdl_sim"></a></p>
+<h2 id="cocotb_activehdl_sim"><a class="header" href="#cocotb_activehdl_sim">cocotb_activehdl_sim</a></h2>
+<pre>
+load("@rules_cocotb//cocotb:cocotb_activehdl_sim.bzl", "cocotb_activehdl_sim")
+
+cocotb_activehdl_sim(<a href="cocotb_activehdl_sim.html#cocotb_activehdl_sim-name">name</a>, <a href="cocotb_activehdl_sim.html#cocotb_activehdl_sim-vcom">vcom</a>, <a href="cocotb_activehdl_sim.html#cocotb_activehdl_sim-vlib">vlib</a>, <a href="cocotb_activehdl_sim.html#cocotb_activehdl_sim-vlog">vlog</a>, <a href="cocotb_activehdl_sim.html#cocotb_activehdl_sim-vsimsa">vsimsa</a>)
+</pre>
+<p>A simulator configuration for running Aldec Active-HDL simulations in
+cocotb tests.</p>
+<h3 id="status-9"><a class="header" href="#status-9">Status</a></h3>
+<p>Infrastructure only. Active-HDL is commercial, with no BCR module and
+no redistributable binary; <code>rules_cocotb</code> cannot validate this rule in
+CI. Wire it up downstream by pointing the binary attrs at your own
+install and registering a <code>cocotb_toolchain</code> that routes
+<code>sim = "activehdl"</code> through this rule. Cocotb's runner handles the
+actual build/sim via <code>Runner.build</code> / <code>Runner.test</code>.</p>
+<h3 id="downstream-wiring-1"><a class="header" href="#downstream-wiring-1">Downstream wiring</a></h3>
+<p>The pattern matches <code>cocotb_riviera_sim</code> — wrap the installed <code>vlib</code>,
+<code>vlog</code>, <code>vcom</code>, and <code>vsimsa</code> binaries via a local repository, then:</p>
+<pre><code class="language-python">load("@rules_cocotb//cocotb:cocotb_activehdl_sim.bzl", "cocotb_activehdl_sim")
+load("@rules_cocotb//cocotb:cocotb_toolchain.bzl", "cocotb_toolchain")
+
+cocotb_activehdl_sim(
+    name = "cocotb_activehdl",
+    vlib = "@activehdl//:vlib",
+    vlog = "@activehdl//:vlog",
+    vcom = "@activehdl//:vcom",
+    vsimsa = "@activehdl//:vsimsa",
+)
+
+cocotb_toolchain(
+    name = "my_cocotb_toolchain",
+    cocotb = "//path/to:cocotb_py_library",
+    simulators = {":cocotb_activehdl": "activehdl"},
+)
+</code></pre>
+<p>Register the toolchain in <code>MODULE.bazel</code> ahead of <code>//cocotb/toolchain</code>
+and use <code>cocotb_test(sim = "activehdl", ...)</code>.</p>
+<p>Active-HDL accepts both Verilog/SystemVerilog (<code>VerilogInfo</code>) and VHDL
+(<code>VhdlInfo</code>) modules.</p>
+<p><strong>ATTRIBUTES</strong></p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
+<tr><td style="text-align: left"><a id="cocotb_activehdl_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_activehdl_sim-vcom"></a>vcom</td><td style="text-align: left">The <code>vcom</code> VHDL compiler binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_activehdl_sim-vlib"></a>vlib</td><td style="text-align: left">The <code>vlib</code> library manager binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_activehdl_sim-vlog"></a>vlog</td><td style="text-align: left">The <code>vlog</code> Verilog compiler binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_activehdl_sim-vsimsa"></a>vsimsa</td><td style="text-align: left">The <code>vsimsa</code> batch simulation runner binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+</tbody></table>
+</div>
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+    </div>
+    </body>
+</html>
