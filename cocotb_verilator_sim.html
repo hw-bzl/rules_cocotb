@@ -166,7 +166,8 @@
 <pre>
 load("@rules_cocotb//cocotb:cocotb_verilator_sim.bzl", "cocotb_verilator_sim")
 
-cocotb_verilator_sim(<a href="#cocotb_verilator_sim-name">name</a>, <a href="#cocotb_verilator_sim-deps">deps</a>, <a href="#cocotb_verilator_sim-cocotb">cocotb</a>, <a href="#cocotb_verilator_sim-copy_tree">copy_tree</a>, <a href="#cocotb_verilator_sim-env">env</a>, <a href="#cocotb_verilator_sim-process_wrapper">process_wrapper</a>, <a href="#cocotb_verilator_sim-verilator">verilator</a>)
+cocotb_verilator_sim(<a href="#cocotb_verilator_sim-name">name</a>, <a href="#cocotb_verilator_sim-deps">deps</a>, <a href="#cocotb_verilator_sim-cocotb">cocotb</a>, <a href="#cocotb_verilator_sim-copy_tree">copy_tree</a>, <a href="#cocotb_verilator_sim-env">env</a>, <a href="#cocotb_verilator_sim-process_wrapper">process_wrapper</a>, <a href="#cocotb_verilator_sim-verilator">verilator</a>,
+                     <a href="#cocotb_verilator_sim-verilator_coverage">verilator_coverage</a>)
 </pre>
 <p>A simulator configuration for compiling <a href="https://verilator.org/">Verilator</a>
 binaries to be run in cocotb tests.</p>
@@ -196,6 +197,7 @@ the rule extracts what it needs internally.</p>
 <tr><td style="text-align: left"><a id="cocotb_verilator_sim-env"></a>env</td><td style="text-align: left">Environment variables to set when the cocotb runner invokes this simulator at test time (license-server pointers, install root vars, …). Precedence: toolchain <code>env</code> &lt; sim <code>env</code> &lt; rule-level <code>cocotb_test(env = ...)</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_verilator_sim-process_wrapper"></a>process_wrapper</td><td style="text-align: left">A process wrapper for verilator. Defaults to the <code>rules_verilator</code> helper.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>"@rules_verilator//verilator/private:verilator_process_wrapper"</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_verilator_sim-verilator"></a>verilator</td><td style="text-align: left">The Verilator binary to use (e.g. <code>@verilator//:verilator_executable</code>).</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_verilator_sim-verilator_coverage"></a>verilator_coverage</td><td style="text-align: left"><code>verilator_coverage_bin</code> — invoked at test time under <code>bazel coverage</code> to translate <code>coverage.dat</code> into lcov.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>"@verilator//:verilator_coverage_executable"</code></td></tr>
 </tbody></table>
 </div>
                     </main>
