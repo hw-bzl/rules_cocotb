@@ -166,7 +166,7 @@
 <pre>
 load("@rules_cocotb//cocotb:cocotb_activehdl_sim.bzl", "cocotb_activehdl_sim")
 
-cocotb_activehdl_sim(<a href="#cocotb_activehdl_sim-name">name</a>, <a href="#cocotb_activehdl_sim-vcom">vcom</a>, <a href="#cocotb_activehdl_sim-vlib">vlib</a>, <a href="#cocotb_activehdl_sim-vlog">vlog</a>, <a href="#cocotb_activehdl_sim-vsimsa">vsimsa</a>)
+cocotb_activehdl_sim(<a href="#cocotb_activehdl_sim-name">name</a>, <a href="#cocotb_activehdl_sim-env">env</a>, <a href="#cocotb_activehdl_sim-vcom">vcom</a>, <a href="#cocotb_activehdl_sim-vlib">vlib</a>, <a href="#cocotb_activehdl_sim-vlog">vlog</a>, <a href="#cocotb_activehdl_sim-vsimsa">vsimsa</a>)
 </pre>
 <p>A simulator configuration for running Aldec Active-HDL simulations in
 cocotb tests.</p>
@@ -204,6 +204,7 @@ and use <code>cocotb_test(sim = "activehdl", ...)</code>.</p>
 <p><strong>ATTRIBUTES</strong></p>
 <div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
 <tr><td style="text-align: left"><a id="cocotb_activehdl_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_activehdl_sim-env"></a>env</td><td style="text-align: left">Environment variables to set when the cocotb runner invokes this simulator at test time (license-server pointers, install root vars, …). Precedence: toolchain <code>env</code> &lt; sim <code>env</code> &lt; rule-level <code>cocotb_test(env = ...)</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_activehdl_sim-vcom"></a>vcom</td><td style="text-align: left">The <code>vcom</code> VHDL compiler binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_activehdl_sim-vlib"></a>vlib</td><td style="text-align: left">The <code>vlib</code> library manager binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_activehdl_sim-vlog"></a>vlog</td><td style="text-align: left">The <code>vlog</code> Verilog compiler binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>

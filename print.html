@@ -301,7 +301,7 @@ cocotb_test(<a href="cocotb_test.html#cocotb_test-name">name</a>, <a href="cocot
 <pre>
 load("@rules_cocotb//cocotb:cocotb_toolchain.bzl", "cocotb_toolchain")
 
-cocotb_toolchain(<a href="cocotb_toolchain.html#cocotb_toolchain-name">name</a>, <a href="cocotb_toolchain.html#cocotb_toolchain-cocotb">cocotb</a>, <a href="cocotb_toolchain.html#cocotb_toolchain-default_sim">default_sim</a>, <a href="cocotb_toolchain.html#cocotb_toolchain-simulators">simulators</a>)
+cocotb_toolchain(<a href="cocotb_toolchain.html#cocotb_toolchain-name">name</a>, <a href="cocotb_toolchain.html#cocotb_toolchain-cocotb">cocotb</a>, <a href="cocotb_toolchain.html#cocotb_toolchain-default_sim">default_sim</a>, <a href="cocotb_toolchain.html#cocotb_toolchain-env">env</a>, <a href="cocotb_toolchain.html#cocotb_toolchain-simulators">simulators</a>)
 </pre>
 <p>Define a toolchain for <code>cocotb_*</code> rules.</p>
 <p>The toolchain bundles a <code>cocotb</code> Python library with a set of HDL
@@ -369,6 +369,7 @@ attribute; it's optional, but if set must name one of the keys in
 <tr><td style="text-align: left"><a id="cocotb_toolchain-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_toolchain-cocotb"></a>cocotb</td><td style="text-align: left">The <code>cocotb</code> python library.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_toolchain-default_sim"></a>default_sim</td><td style="text-align: left">An optional default simulator to use.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>""</code></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_toolchain-env"></a>env</td><td style="text-align: left">Environment variables to set whenever the toolchain invokes a simulator. Applied to every sim registered in <code>simulators</code>; for sim-specific vars (license server, install root, etc.) prefer the per-<code>cocotb_*_sim</code> <code>env</code> attr instead. Precedence at test time: toolchain <code>env</code> &lt; sim <code>env</code> &lt; rule-level <code>cocotb_test(env = ...)</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_toolchain-simulators"></a>simulators</td><td style="text-align: left">A mapping of <code>cocotb_*_sim</code> targets to their matching simulator names. Every target must provide <code>CocotbSimInfo</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: Label -&gt; String</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><h1 id="simulators"><a class="header" href="#simulators">Simulators</a></h1>
@@ -426,7 +427,7 @@ patterns are inline on each simulator's reference page.</p>
 <pre>
 load("@rules_cocotb//cocotb:cocotb_ghdl_sim.bzl", "cocotb_ghdl_sim")
 
-cocotb_ghdl_sim(<a href="cocotb_ghdl_sim.html#cocotb_ghdl_sim-name">name</a>, <a href="cocotb_ghdl_sim.html#cocotb_ghdl_sim-ghdl">ghdl</a>, <a href="cocotb_ghdl_sim.html#cocotb_ghdl_sim-ghdl_prefix">ghdl_prefix</a>, <a href="cocotb_ghdl_sim.html#cocotb_ghdl_sim-vhdl_libs">vhdl_libs</a>)
+cocotb_ghdl_sim(<a href="cocotb_ghdl_sim.html#cocotb_ghdl_sim-name">name</a>, <a href="cocotb_ghdl_sim.html#cocotb_ghdl_sim-env">env</a>, <a href="cocotb_ghdl_sim.html#cocotb_ghdl_sim-ghdl">ghdl</a>, <a href="cocotb_ghdl_sim.html#cocotb_ghdl_sim-ghdl_prefix">ghdl_prefix</a>, <a href="cocotb_ghdl_sim.html#cocotb_ghdl_sim-vhdl_libs">vhdl_libs</a>)
 </pre>
 <p>A simulator configuration for running <a href="https://ghdl.github.io/ghdl/">GHDL</a>
 simulations in cocotb tests.</p>
@@ -451,6 +452,7 @@ libraries from the BCR <code>ghdl</code> module — most projects want
 <p><strong>ATTRIBUTES</strong></p>
 <div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
 <tr><td style="text-align: left"><a id="cocotb_ghdl_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_ghdl_sim-env"></a>env</td><td style="text-align: left">Environment variables to set when the cocotb runner invokes this simulator at test time (license-server pointers, install root vars, …). Precedence: toolchain <code>env</code> &lt; sim <code>env</code> &lt; rule-level <code>cocotb_test(env = ...)</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_ghdl_sim-ghdl"></a>ghdl</td><td style="text-align: left">The <code>ghdl</code> binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_ghdl_sim-ghdl_prefix"></a>ghdl_prefix</td><td style="text-align: left">Literal value to set as <code>GHDL_PREFIX</code> at simulation time. Use this for ghdl installs where the prefix is a stable absolute path on disk — typically a system/<code>.deb</code>/Homebrew install (e.g. <code>"/usr/lib/ghdl"</code>).<br><br>When unset (default), <code>GHDL_PREFIX</code> is auto-derived from <code>vhdl_libs</code> if it's populated (BCR-shaped layout), otherwise left unset so ghdl falls back to its own compiled-in search paths.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>""</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_ghdl_sim-vhdl_libs"></a>vhdl_libs</td><td style="text-align: left">Pre-compiled VHDL standard libraries (e.g. <code>@ghdl//:vhdl_libs_v08</code>). <strong>Assumes the BCR <code>ghdl</code> module's layout</strong> — <code>&lt;root&gt;/{std,ieee}/v&lt;XX&gt;/&lt;name&gt;-objXX.cf</code> — from which <code>GHDL_PREFIX</code> is derived. If you ship ghdl differently and the IEEE/std libs are already discoverable by the binary, leave this empty and (optionally) set <code>ghdl_prefix</code> to a literal path, or skip both for a system install that uses its compiled-in defaults.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
@@ -466,7 +468,7 @@ libraries from the BCR <code>ghdl</code> module — most projects want
 <pre>
 load("@rules_cocotb//cocotb:cocotb_icarus_sim.bzl", "cocotb_icarus_sim")
 
-cocotb_icarus_sim(<a href="cocotb_icarus_sim.html#cocotb_icarus_sim-name">name</a>, <a href="cocotb_icarus_sim.html#cocotb_icarus_sim-iverilog">iverilog</a>, <a href="cocotb_icarus_sim.html#cocotb_icarus_sim-ivl_base">ivl_base</a>, <a href="cocotb_icarus_sim.html#cocotb_icarus_sim-ivl_files">ivl_files</a>, <a href="cocotb_icarus_sim.html#cocotb_icarus_sim-vvp">vvp</a>)
+cocotb_icarus_sim(<a href="cocotb_icarus_sim.html#cocotb_icarus_sim-name">name</a>, <a href="cocotb_icarus_sim.html#cocotb_icarus_sim-env">env</a>, <a href="cocotb_icarus_sim.html#cocotb_icarus_sim-iverilog">iverilog</a>, <a href="cocotb_icarus_sim.html#cocotb_icarus_sim-ivl_base">ivl_base</a>, <a href="cocotb_icarus_sim.html#cocotb_icarus_sim-ivl_files">ivl_files</a>, <a href="cocotb_icarus_sim.html#cocotb_icarus_sim-vvp">vvp</a>)
 </pre>
 <p>A simulator configuration for running <a href="https://github.com/steveicarus/iverilog">Icarus
 Verilog</a> binaries in cocotb tests.</p>
@@ -486,6 +488,7 @@ with a <code>verilog_library</code> target as the <code>module</code>.</p>
 <p><strong>ATTRIBUTES</strong></p>
 <div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
 <tr><td style="text-align: left"><a id="cocotb_icarus_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_icarus_sim-env"></a>env</td><td style="text-align: left">Environment variables to set when the cocotb runner invokes this simulator at test time (license-server pointers, install root vars, …). Precedence: toolchain <code>env</code> &lt; sim <code>env</code> &lt; rule-level <code>cocotb_test(env = ...)</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_icarus_sim-iverilog"></a>iverilog</td><td style="text-align: left">The <code>iverilog</code> compiler binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_icarus_sim-ivl_base"></a>ivl_base</td><td style="text-align: left">A pre-assembled <code>IVL_BASE</code> directory (e.g. a <code>filegroup</code> wrapping <code>/usr/lib/ivl</code> for a system iverilog). The rule sets <code>IVL_BASE</code> to this directory's path during compilation. Mutually exclusive with <code>ivl_files</code>.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>None</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_icarus_sim-ivl_files"></a>ivl_files</td><td style="text-align: left">Components to assemble into an <code>IVL_BASE</code> directory. Maps source labels to destination filenames (e.g. <code>{"@iverilog//:ivl": "ivl", "@iverilog//tgt-vvp:vvp_tgt": "vvp.tgt"}</code>). Designed for the BCR <code>iverilog</code> module's per-component layout — for an <code>IVL_BASE</code> directory that already exists on disk, use <code>ivl_base</code> instead. Mutually exclusive with <code>ivl_base</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: Label -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
@@ -502,7 +505,7 @@ with a <code>verilog_library</code> target as the <code>module</code>.</p>
 <pre>
 load("@rules_cocotb//cocotb:cocotb_verilator_sim.bzl", "cocotb_verilator_sim")
 
-cocotb_verilator_sim(<a href="cocotb_verilator_sim.html#cocotb_verilator_sim-name">name</a>, <a href="cocotb_verilator_sim.html#cocotb_verilator_sim-deps">deps</a>, <a href="cocotb_verilator_sim.html#cocotb_verilator_sim-cocotb">cocotb</a>, <a href="cocotb_verilator_sim.html#cocotb_verilator_sim-copy_tree">copy_tree</a>, <a href="cocotb_verilator_sim.html#cocotb_verilator_sim-process_wrapper">process_wrapper</a>, <a href="cocotb_verilator_sim.html#cocotb_verilator_sim-verilator">verilator</a>)
+cocotb_verilator_sim(<a href="cocotb_verilator_sim.html#cocotb_verilator_sim-name">name</a>, <a href="cocotb_verilator_sim.html#cocotb_verilator_sim-deps">deps</a>, <a href="cocotb_verilator_sim.html#cocotb_verilator_sim-cocotb">cocotb</a>, <a href="cocotb_verilator_sim.html#cocotb_verilator_sim-copy_tree">copy_tree</a>, <a href="cocotb_verilator_sim.html#cocotb_verilator_sim-env">env</a>, <a href="cocotb_verilator_sim.html#cocotb_verilator_sim-process_wrapper">process_wrapper</a>, <a href="cocotb_verilator_sim.html#cocotb_verilator_sim-verilator">verilator</a>)
 </pre>
 <p>A simulator configuration for compiling <a href="https://verilator.org/">Verilator</a>
 binaries to be run in cocotb tests.</p>
@@ -529,6 +532,7 @@ the rule extracts what it needs internally.</p>
 <tr><td style="text-align: left"><a id="cocotb_verilator_sim-deps"></a>deps</td><td style="text-align: left">Additional <code>CcInfo</code>-providing dependencies to link into the verilator executable (e.g. <code>@verilator//:verilated</code> and your project's C++ shims).</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_verilator_sim-cocotb"></a>cocotb</td><td style="text-align: left">The cocotb pip package (a <code>py_library</code> wrapping <code>@cocotb_pip_deps//cocotb</code>). Used to extract <code>verilator.cpp</code> and the cocotb VPI shared libraries.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_verilator_sim-copy_tree"></a>copy_tree</td><td style="text-align: left">A tool for copying a tree of files. Defaults to the <code>rules_verilator</code> helper.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>"@rules_verilator//verilator/private:verilator_copy_tree"</code></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_verilator_sim-env"></a>env</td><td style="text-align: left">Environment variables to set when the cocotb runner invokes this simulator at test time (license-server pointers, install root vars, …). Precedence: toolchain <code>env</code> &lt; sim <code>env</code> &lt; rule-level <code>cocotb_test(env = ...)</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_verilator_sim-process_wrapper"></a>process_wrapper</td><td style="text-align: left">A process wrapper for verilator. Defaults to the <code>rules_verilator</code> helper.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>"@rules_verilator//verilator/private:verilator_process_wrapper"</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_verilator_sim-verilator"></a>verilator</td><td style="text-align: left">The Verilator binary to use (e.g. <code>@verilator//:verilator_executable</code>).</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 </tbody></table>
@@ -543,7 +547,7 @@ the rule extracts what it needs internally.</p>
 <pre>
 load("@rules_cocotb//cocotb:cocotb_nvc_sim.bzl", "cocotb_nvc_sim")
 
-cocotb_nvc_sim(<a href="cocotb_nvc_sim.html#cocotb_nvc_sim-name">name</a>, <a href="cocotb_nvc_sim.html#cocotb_nvc_sim-nvc">nvc</a>)
+cocotb_nvc_sim(<a href="cocotb_nvc_sim.html#cocotb_nvc_sim-name">name</a>, <a href="cocotb_nvc_sim.html#cocotb_nvc_sim-env">env</a>, <a href="cocotb_nvc_sim.html#cocotb_nvc_sim-nvc">nvc</a>)
 </pre>
 <p>A simulator configuration for running <a href="https://www.nickg.me.uk/nvc/">NVC</a>
 (open-source VHDL simulator) in cocotb tests.</p>
@@ -561,6 +565,7 @@ target as the <code>module</code>.</p>
 <p><strong>ATTRIBUTES</strong></p>
 <div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
 <tr><td style="text-align: left"><a id="cocotb_nvc_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_nvc_sim-env"></a>env</td><td style="text-align: left">Environment variables to set when the cocotb runner invokes this simulator at test time (license-server pointers, install root vars, …). Precedence: toolchain <code>env</code> &lt; sim <code>env</code> &lt; rule-level <code>cocotb_test(env = ...)</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_nvc_sim-nvc"></a>nvc</td><td style="text-align: left">The <code>nvc</code> simulator binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
@@ -574,7 +579,7 @@ target as the <code>module</code>.</p>
 <pre>
 load("@rules_cocotb//cocotb:cocotb_questa_sim.bzl", "cocotb_questa_sim")
 
-cocotb_questa_sim(<a href="cocotb_questa_sim.html#cocotb_questa_sim-name">name</a>, <a href="cocotb_questa_sim.html#cocotb_questa_sim-vcom">vcom</a>, <a href="cocotb_questa_sim.html#cocotb_questa_sim-vlib">vlib</a>, <a href="cocotb_questa_sim.html#cocotb_questa_sim-vlog">vlog</a>, <a href="cocotb_questa_sim.html#cocotb_questa_sim-vsim">vsim</a>)
+cocotb_questa_sim(<a href="cocotb_questa_sim.html#cocotb_questa_sim-name">name</a>, <a href="cocotb_questa_sim.html#cocotb_questa_sim-env">env</a>, <a href="cocotb_questa_sim.html#cocotb_questa_sim-vcom">vcom</a>, <a href="cocotb_questa_sim.html#cocotb_questa_sim-vlib">vlib</a>, <a href="cocotb_questa_sim.html#cocotb_questa_sim-vlog">vlog</a>, <a href="cocotb_questa_sim.html#cocotb_questa_sim-vsim">vsim</a>)
 </pre>
 <p>A simulator configuration for running <a href="https://eda.sw.siemens.com/en-US/ic/questa/">Mentor/Siemens
 EDA Questa</a> (and the older
@@ -598,6 +603,7 @@ the test execution environment.</p>
 <p><strong>ATTRIBUTES</strong></p>
 <div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
 <tr><td style="text-align: left"><a id="cocotb_questa_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_questa_sim-env"></a>env</td><td style="text-align: left">Environment variables to set when the cocotb runner invokes this simulator at test time (license-server pointers, install root vars, …). Precedence: toolchain <code>env</code> &lt; sim <code>env</code> &lt; rule-level <code>cocotb_test(env = ...)</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_questa_sim-vcom"></a>vcom</td><td style="text-align: left">The <code>vcom</code> VHDL compiler binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_questa_sim-vlib"></a>vlib</td><td style="text-align: left">The <code>vlib</code> library manager binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_questa_sim-vlog"></a>vlog</td><td style="text-align: left">The <code>vlog</code> Verilog/SystemVerilog compiler binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
@@ -614,7 +620,7 @@ the test execution environment.</p>
 <pre>
 load("@rules_cocotb//cocotb:cocotb_xcelium_sim.bzl", "cocotb_xcelium_sim")
 
-cocotb_xcelium_sim(<a href="cocotb_xcelium_sim.html#cocotb_xcelium_sim-name">name</a>, <a href="cocotb_xcelium_sim.html#cocotb_xcelium_sim-xrun">xrun</a>)
+cocotb_xcelium_sim(<a href="cocotb_xcelium_sim.html#cocotb_xcelium_sim-name">name</a>, <a href="cocotb_xcelium_sim.html#cocotb_xcelium_sim-env">env</a>, <a href="cocotb_xcelium_sim.html#cocotb_xcelium_sim-xrun">xrun</a>)
 </pre>
 <p>A simulator configuration for running <a href="https://www.cadence.com/en_US/home/tools/system-design-and-verification/simulation-and-testbench-verification/xcelium-simulator.html">Cadence
 Xcelium</a>
@@ -634,6 +640,7 @@ compiler internally, so only the one binary attr is needed.</p>
 <p><strong>ATTRIBUTES</strong></p>
 <div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
 <tr><td style="text-align: left"><a id="cocotb_xcelium_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_xcelium_sim-env"></a>env</td><td style="text-align: left">Environment variables to set when the cocotb runner invokes this simulator at test time (license-server pointers, install root vars, …). Precedence: toolchain <code>env</code> &lt; sim <code>env</code> &lt; rule-level <code>cocotb_test(env = ...)</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_xcelium_sim-xrun"></a>xrun</td><td style="text-align: left">The <code>xrun</code> driver binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
@@ -647,7 +654,7 @@ compiler internally, so only the one binary attr is needed.</p>
 <pre>
 load("@rules_cocotb//cocotb:cocotb_vcs_sim.bzl", "cocotb_vcs_sim")
 
-cocotb_vcs_sim(<a href="cocotb_vcs_sim.html#cocotb_vcs_sim-name">name</a>, <a href="cocotb_vcs_sim.html#cocotb_vcs_sim-vcs">vcs</a>)
+cocotb_vcs_sim(<a href="cocotb_vcs_sim.html#cocotb_vcs_sim-name">name</a>, <a href="cocotb_vcs_sim.html#cocotb_vcs_sim-env">env</a>, <a href="cocotb_vcs_sim.html#cocotb_vcs_sim-vcs">vcs</a>)
 </pre>
 <p>A simulator configuration for running <a href="https://www.synopsys.com/verification/simulation/vcs.html">Synopsys
 VCS</a>
@@ -667,6 +674,7 @@ attribute.</p>
 <p><strong>ATTRIBUTES</strong></p>
 <div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
 <tr><td style="text-align: left"><a id="cocotb_vcs_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_vcs_sim-env"></a>env</td><td style="text-align: left">Environment variables to set when the cocotb runner invokes this simulator at test time (license-server pointers, install root vars, …). Precedence: toolchain <code>env</code> &lt; sim <code>env</code> &lt; rule-level <code>cocotb_test(env = ...)</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_vcs_sim-vcs"></a>vcs</td><td style="text-align: left">The <code>vcs</code> compiler binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
@@ -680,7 +688,7 @@ attribute.</p>
 <pre>
 load("@rules_cocotb//cocotb:cocotb_dsim_sim.bzl", "cocotb_dsim_sim")
 
-cocotb_dsim_sim(<a href="cocotb_dsim_sim.html#cocotb_dsim_sim-name">name</a>, <a href="cocotb_dsim_sim.html#cocotb_dsim_sim-dsim">dsim</a>)
+cocotb_dsim_sim(<a href="cocotb_dsim_sim.html#cocotb_dsim_sim-name">name</a>, <a href="cocotb_dsim_sim.html#cocotb_dsim_sim-dsim">dsim</a>, <a href="cocotb_dsim_sim.html#cocotb_dsim_sim-env">env</a>)
 </pre>
 <p>A simulator configuration for running <a href="https://www.metrics.ca/dsim/">Siemens
 DSim</a> (formerly Metrics DSim) simulations
@@ -700,6 +708,7 @@ phases internally, so only the one binary attr is needed.</p>
 <div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
 <tr><td style="text-align: left"><a id="cocotb_dsim_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_dsim_sim-dsim"></a>dsim</td><td style="text-align: left">The <code>dsim</code> simulator binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_dsim_sim-env"></a>env</td><td style="text-align: left">Environment variables to set when the cocotb runner invokes this simulator at test time (license-server pointers, install root vars, …). Precedence: toolchain <code>env</code> &lt; sim <code>env</code> &lt; rule-level <code>cocotb_test(env = ...)</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
 <p>cocotb_riviera_sim</p>
@@ -712,7 +721,7 @@ phases internally, so only the one binary attr is needed.</p>
 <pre>
 load("@rules_cocotb//cocotb:cocotb_riviera_sim.bzl", "cocotb_riviera_sim")
 
-cocotb_riviera_sim(<a href="cocotb_riviera_sim.html#cocotb_riviera_sim-name">name</a>, <a href="cocotb_riviera_sim.html#cocotb_riviera_sim-vsimsa">vsimsa</a>)
+cocotb_riviera_sim(<a href="cocotb_riviera_sim.html#cocotb_riviera_sim-name">name</a>, <a href="cocotb_riviera_sim.html#cocotb_riviera_sim-env">env</a>, <a href="cocotb_riviera_sim.html#cocotb_riviera_sim-vsimsa">vsimsa</a>)
 </pre>
 <p>A simulator configuration for running Aldec Riviera-PRO simulations in
 cocotb tests.</p>
@@ -757,6 +766,7 @@ and <code>cocotb_test(sim = "riviera", ...)</code> will resolve through it.</p>
 <p><strong>ATTRIBUTES</strong></p>
 <div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
 <tr><td style="text-align: left"><a id="cocotb_riviera_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_riviera_sim-env"></a>env</td><td style="text-align: left">Environment variables to set when the cocotb runner invokes this simulator at test time (license-server pointers, install root vars, …). Precedence: toolchain <code>env</code> &lt; sim <code>env</code> &lt; rule-level <code>cocotb_test(env = ...)</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_riviera_sim-vsimsa"></a>vsimsa</td><td style="text-align: left">The <code>vsimsa</code> standalone batch simulator binary. Cocotb's Riviera runner invokes only <code>vsimsa</code>; the rest of the Aldec install (alib/alog/acom/asim engines, libraries, license config) is loaded internally by vsimsa via <code>$RIVIERA_HOME</code>. Attach those install files as <code>data</code> deps on the target you pass here so they're staged alongside the binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
@@ -770,7 +780,7 @@ and <code>cocotb_test(sim = "riviera", ...)</code> will resolve through it.</p>
 <pre>
 load("@rules_cocotb//cocotb:cocotb_activehdl_sim.bzl", "cocotb_activehdl_sim")
 
-cocotb_activehdl_sim(<a href="cocotb_activehdl_sim.html#cocotb_activehdl_sim-name">name</a>, <a href="cocotb_activehdl_sim.html#cocotb_activehdl_sim-vcom">vcom</a>, <a href="cocotb_activehdl_sim.html#cocotb_activehdl_sim-vlib">vlib</a>, <a href="cocotb_activehdl_sim.html#cocotb_activehdl_sim-vlog">vlog</a>, <a href="cocotb_activehdl_sim.html#cocotb_activehdl_sim-vsimsa">vsimsa</a>)
+cocotb_activehdl_sim(<a href="cocotb_activehdl_sim.html#cocotb_activehdl_sim-name">name</a>, <a href="cocotb_activehdl_sim.html#cocotb_activehdl_sim-env">env</a>, <a href="cocotb_activehdl_sim.html#cocotb_activehdl_sim-vcom">vcom</a>, <a href="cocotb_activehdl_sim.html#cocotb_activehdl_sim-vlib">vlib</a>, <a href="cocotb_activehdl_sim.html#cocotb_activehdl_sim-vlog">vlog</a>, <a href="cocotb_activehdl_sim.html#cocotb_activehdl_sim-vsimsa">vsimsa</a>)
 </pre>
 <p>A simulator configuration for running Aldec Active-HDL simulations in
 cocotb tests.</p>
@@ -808,6 +818,7 @@ and use <code>cocotb_test(sim = "activehdl", ...)</code>.</p>
 <p><strong>ATTRIBUTES</strong></p>
 <div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
 <tr><td style="text-align: left"><a id="cocotb_activehdl_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_activehdl_sim-env"></a>env</td><td style="text-align: left">Environment variables to set when the cocotb runner invokes this simulator at test time (license-server pointers, install root vars, …). Precedence: toolchain <code>env</code> &lt; sim <code>env</code> &lt; rule-level <code>cocotb_test(env = ...)</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_activehdl_sim-vcom"></a>vcom</td><td style="text-align: left">The <code>vcom</code> VHDL compiler binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_activehdl_sim-vlib"></a>vlib</td><td style="text-align: left">The <code>vlib</code> library manager binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_activehdl_sim-vlog"></a>vlog</td><td style="text-align: left">The <code>vlog</code> Verilog compiler binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
