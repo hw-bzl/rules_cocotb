@@ -550,26 +550,35 @@ the rule extracts what it needs internally.</p>
 <pre>
 load("@rules_cocotb//cocotb:cocotb_nvc_sim.bzl", "cocotb_nvc_sim")
 
-cocotb_nvc_sim(<a href="cocotb_nvc_sim.html#cocotb_nvc_sim-name">name</a>, <a href="cocotb_nvc_sim.html#cocotb_nvc_sim-env">env</a>, <a href="cocotb_nvc_sim.html#cocotb_nvc_sim-nvc">nvc</a>)
+cocotb_nvc_sim(<a href="cocotb_nvc_sim.html#cocotb_nvc_sim-name">name</a>, <a href="cocotb_nvc_sim.html#cocotb_nvc_sim-env">env</a>, <a href="cocotb_nvc_sim.html#cocotb_nvc_sim-nvc">nvc</a>, <a href="cocotb_nvc_sim.html#cocotb_nvc_sim-nvc_libpath">nvc_libpath</a>, <a href="cocotb_nvc_sim.html#cocotb_nvc_sim-vhdl_libs">vhdl_libs</a>)
 </pre>
 <p>A simulator configuration for running <a href="https://www.nickg.me.uk/nvc/">NVC</a>
 (open-source VHDL simulator) in cocotb tests.</p>
 <h3 id="status-3"><a class="header" href="#status-3">Status</a></h3>
-<p>Infrastructure only. NVC is open source but does not yet have a BCR
-module, so <code>rules_cocotb</code> cannot ship a default toolchain wired to it.
-Wire it up downstream by pointing <code>nvc</code> at a <code>new_local_repository</code> /
-<code>sh_binary</code> wrapper around a system install (or a custom Bazel build)
-and registering a <code>cocotb_toolchain</code> that routes <code>sim = "nvc"</code> through
-this rule. Cocotb's runner handles the actual build/sim via
-<code>Runner.build</code> / <code>Runner.test</code>.</p>
+<p>Working against the BCR <code>nvc</code> module from version <code>1.21.0</code> onward,
+which links the <code>nvc</code> binary with <code>-Wl,--dynamic-list=src/symbols.txt</code>
+so cocotb's <code>libcocotbvpi_nvc.so</code> plugin can resolve unprefixed
+<code>vpi_*</code> / <code>vhpi_*</code> symbols at <code>dlopen</code> time.</p>
 <h3 id="notes-3"><a class="header" href="#notes-3">Notes</a></h3>
 <p>NVC only supports VHDL (<code>VhdlInfo</code>); pair it with a <code>vhdl_library</code>
-target as the <code>module</code>.</p>
+target as the <code>module</code>. The integration is build-at-test-time:
+cocotb's runner runs <code>nvc -a</code> / <code>-e</code> / <code>-r</code> in a writable build_dir
+via <code>Runner.build()</code> / <code>Runner.test()</code>.</p>
+<p><code>vhdl_libs</code> accepts a list of per-library TreeArtifact targets —
+typically <code>["@nvc//:vhdl_libs"]</code>, the BCR <code>nvc</code> module's filegroup
+of per-library directories laid out exactly like a system install
+under <code>&lt;prefix&gt;/lib/nvc/&lt;library&gt;/</code>. The rule's implementation
+stages those TreeArtifacts side-by-side under a single root and
+points <code>NVC_LIBPATH</code> at it so nvc finds every shipped library (STD,
+IEEE, NVC, plus the SYNOPSYS / VITAL extras inside IEEE) at
+simulation time.</p>
 <p><strong>ATTRIBUTES</strong></p>
 <div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
 <tr><td style="text-align: left"><a id="cocotb_nvc_sim-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_nvc_sim-env"></a>env</td><td style="text-align: left">Environment variables to set when the cocotb runner invokes this simulator at test time (license-server pointers, install root vars, …). Precedence: toolchain <code>env</code> &lt; sim <code>env</code> &lt; rule-level <code>cocotb_test(env = ...)</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_nvc_sim-nvc"></a>nvc</td><td style="text-align: left">The <code>nvc</code> simulator binary.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_nvc_sim-nvc_libpath"></a>nvc_libpath</td><td style="text-align: left">Literal value to set as <code>NVC_LIBPATH</code> at simulation time. Use this for nvc installs where the prefix is a stable absolute path on disk — typically a system / <code>.deb</code> / Homebrew install (e.g. <code>"/usr/local/lib/nvc"</code>).<br><br>When unset (default), <code>NVC_LIBPATH</code> is auto-derived from <code>vhdl_libs</code> if it's populated (per-library TreeArtifacts staged into one root by this rule), otherwise left unset so nvc falls back to its own compiled-in search paths.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>""</code></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_nvc_sim-vhdl_libs"></a>vhdl_libs</td><td style="text-align: left">Per-library TreeArtifact targets to stage side-by-side under a single <code>NVC_LIBPATH</code> root. Typically <code>["@nvc//:vhdl_libs"]</code> — the BCR <code>nvc</code> module's filegroup of per-library directories. Empty (the default) leaves <code>NVC_LIBPATH</code> unset.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">List of labels</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>[]</code></td></tr>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
 <p>cocotb_questa_sim</p>
