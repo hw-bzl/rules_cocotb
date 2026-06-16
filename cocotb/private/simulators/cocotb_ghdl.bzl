@@ -115,7 +115,7 @@ def _cocotb_ghdl_sim_impl(ctx):
     coverage = None
     if ctx.attr.ghdl_coverage:
         coverage = struct(
-            tool = ctx.executable.ghdl_coverage,
+            tool = ctx.attr.ghdl_coverage,
             args = ["coverage", "--format=lcov", "-o", "{output}", "{data_files}"],
             data_glob = "*.cov",
         )

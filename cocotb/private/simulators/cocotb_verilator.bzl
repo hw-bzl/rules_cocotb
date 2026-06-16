@@ -328,7 +328,7 @@ def _cocotb_verilator_sim_impl(ctx):
             # `verilator_coverage_bin --write-info <out> <dat>` then
             # produces lcov directly.
             coverage = struct(
-                tool = ctx.executable.verilator_coverage,
+                tool = ctx.attr.verilator_coverage,
                 args = ["--write-info", "{output}", "{data_files}"],
                 data_glob = "coverage.dat",
             ),

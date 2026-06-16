@@ -201,13 +201,22 @@ def _cocotb_test_impl(ctx):
     # which is what Bazel's instrumentation filter actually checks.
     coverage_runfiles = ctx.runfiles()
     if sim_info.coverage and ctx.coverage_instrumented(ctx.attr.module):
+        # `sim_info.coverage.tool` is a Target — pull its executable for
+        # the wrapper arg AND its default_runfiles so the whole tool
+        # (launcher + interpreter + helper data) ships at test time. A
+        # File would only carry the launcher and miss the venv_config /
+        # interpreter / sibling .py files rules_venv-based binaries need
+        # to start up.
+        tool_exec = sim_info.coverage.tool[DefaultInfo].files_to_run.executable
         args.add("--coverage_tool={}".format(
-            _rlocationpath(sim_info.coverage.tool, ctx.workspace_name),
+            _rlocationpath(tool_exec, ctx.workspace_name),
         ))
         args.add("--coverage_data_glob={}".format(sim_info.coverage.data_glob))
         for a in sim_info.coverage.args:
             args.add("--coverage_arg={}".format(a))
-        coverage_runfiles = ctx.runfiles(files = [sim_info.coverage.tool])
+        coverage_runfiles = ctx.runfiles(files = [tool_exec]).merge(
+            sim_info.coverage.tool[DefaultInfo].default_runfiles,
+        )
 
     args.add("--")
     args.add("--hdl_toplevel", hdl_toplevel)
@@ -278,7 +287,9 @@ def _cocotb_test_impl(ctx):
         ),
         coverage_common.instrumented_files_info(
             ctx,
+            source_attributes = ["module"],
             dependency_attributes = ["module"],
+            extensions = ["vhd", "vhdl", "v", "sv", "vh", "svh"],
         ),
     ]
 

@@ -75,7 +75,12 @@ shipped `compile`.
                      "`ctx.coverage_instrumented()`), the wrapper invokes " +
                      "the tool after `runner.test()` returns, producing " +
                      "lcov at `$COVERAGE_OUTPUT_FILE`. Fields:\n" +
-                     "  * `tool` (File): executable to run.\n" +
+                     "  * `tool` (Target): post-processor binary. The " +
+                     "consumer pulls `[DefaultInfo].files_to_run.executable` " +
+                     "for the wrapper arg AND `default_runfiles` so the " +
+                     "launcher's interpreter + sibling data ship alongside " +
+                     "the executable (lets py_venv-shaped binaries work, " +
+                     "not just single-file native tools).\n" +
                      "  * `args` (list[str]): args template. `{output}` " +
                      "is substituted with `$COVERAGE_OUTPUT_FILE`; " +
                      "`{data_files}` is substituted with the absolute " +
@@ -85,10 +90,10 @@ shipped `compile`.
                      "sim's build dir, matching the raw coverage data " +
                      "file(s) the tool consumes.\n" +
                      "Verilator example: " +
-                     "`struct(tool=verilator_coverage_bin, " +
+                     "`struct(tool=verilator_coverage_target, " +
                      "args=['--write-info', '{output}', '{data_files}'], " +
                      "data_glob='coverage.dat')`. " +
-                     "GHDL example: `struct(tool=ghdl, " +
+                     "GHDL example: `struct(tool=ghdl_target, " +
                      "args=['coverage', '--format=lcov', '-o', '{output}', " +
                      "'{data_files}'], data_glob='*.cov')`. " +
                      "Sims that don't support coverage leave this None; " +

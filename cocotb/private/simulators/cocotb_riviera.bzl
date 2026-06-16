@@ -63,11 +63,34 @@ def riviera_compile(ctx, simulator, module, sim_opts):
     all_srcs = depset(transitive = src_depsets)
     all_data = depset(transitive = data_depsets)
 
+    # Coverage instrumentation. When the HDL module is exercised under
+    # `bazel coverage`, fold the Aldec coverage flags into the runner's
+    # build_args / test_args so:
+    #   * acom/alog instrument each source (per-file `-coverage <kinds>`)
+    #   * asim records hit counts into ACDB at runtime (`-acdb_cov <kinds>`)
+    # Kinds: s=statement, b=branch, e=expression, c=condition, a=assertion,
+    # m=FSM. The post-process tool from
+    # `simulator[CocotbSimInfo].coverage` consumes whichever ACDBs end
+    # up in the runner's results dir.
+    build_args = list(sim_opts)
+    test_args = []
+    if ctx.coverage_instrumented(module):
+        build_args.extend(["-coverage", "sbecam"])
+
+        # `-acdb_cov` enables collection; `-acdb_file` is required for
+        # asim to actually persist the ACDB on disk (otherwise the data
+        # stays in memory and is lost at process exit). Relative path
+        # lands in asim's cwd, which cocotb's runner sets to the test's
+        # results dir — exactly where the wrapper's `coverage_data_glob`
+        # searches.
+        test_args.extend(["-acdb_cov", "sbecam", "-acdb_file", "coverage.acdb"])
+
     return CocotbSimOutputInfo(
         runfiles = ctx.runfiles(
             transitive_files = depset(transitive = [all_srcs, all_data]),
         ),
-        build_args = list(sim_opts),
+        build_args = build_args,
+        test_args = test_args,
         build_sources = all_srcs.to_list(),
     )
 
@@ -76,6 +99,22 @@ def _cocotb_riviera_sim_impl(ctx):
 
     vsimsa_exe = ctx.executable.vsimsa
 
+    # Coverage post-processor — emitted as the `CocotbSimInfo.coverage`
+    # struct the rules_cocotb wrapper consumes. Only populated when the
+    # rule's `coverage_tool` attr is set; consumers that don't ship a
+    # converter omit it and `bazel coverage` produces baseline-only LCOV.
+    # `tool` is the Target (not the File): the consumer pulls
+    # `[DefaultInfo].files_to_run.executable` for the wrapper arg AND
+    # `default_runfiles` so the launcher's interpreter + sibling data
+    # ship alongside the executable.
+    coverage_struct = None
+    if ctx.attr.coverage_tool:
+        coverage_struct = struct(
+            tool = ctx.attr.coverage_tool,
+            data_glob = ctx.attr.coverage_data_glob,
+            args = list(ctx.attr.coverage_args),
+        )
+
     return [
         CocotbSimInfo(
             all_files = all_files,
@@ -83,6 +122,7 @@ def _cocotb_riviera_sim_impl(ctx):
                 "vsimsa": vsimsa_exe,
             },
             compile = riviera_compile,
+            coverage = coverage_struct,
             env = ctx.attr.env,
         ),
         CocotbSimRivieraInfo(
@@ -145,6 +185,36 @@ Riviera-PRO accepts both Verilog/SystemVerilog (`VerilogInfo`) and VHDL
 """,
     implementation = _cocotb_riviera_sim_impl,
     attrs = {
+        "coverage_args": attr.string_list(
+            doc = ("Template fragments forwarded to `coverage_tool` after " +
+                   "the cocotb runner exits under `bazel coverage`. " +
+                   "`{output}` is substituted with `$COVERAGE_OUTPUT_FILE`; " +
+                   "`{data_files}` is expanded into one positional arg per " +
+                   "file matched by `coverage_data_glob`. Only meaningful " +
+                   "when `coverage_tool` is set."),
+            default = [],
+        ),
+        "coverage_data_glob": attr.string(
+            doc = ("Shell glob (relative to the cocotb sim's build dir) " +
+                   "selecting the raw coverage data files `coverage_tool` " +
+                   "consumes. For Riviera-PRO, `**/coverage.acdb` matches " +
+                   "every per-test ACDB the run produces. Only meaningful " +
+                   "when `coverage_tool` is set."),
+            default = "",
+        ),
+        "coverage_tool": attr.label(
+            doc = ("Optional Riviera coverage post-processor. When set AND " +
+                   "the test's HDL module is exercised under " +
+                   "`bazel coverage` (via `ctx.coverage_instrumented(module)`), " +
+                   "the rules_cocotb process wrapper invokes this binary " +
+                   "after the cocotb runner exits with the `coverage_args` " +
+                   "template (substituting `{output}` and `{data_files}`) " +
+                   "so it can translate the raw ACDBs into lcov at " +
+                   "`$COVERAGE_OUTPUT_FILE`. Leave unset to ship raw ACDBs " +
+                   "under the test outputs dir without an lcov roll-up."),
+            executable = True,
+            cfg = "exec",
+        ),
         "env": SIM_ENV_ATTR,
         "vsimsa": attr.label(
             doc = (

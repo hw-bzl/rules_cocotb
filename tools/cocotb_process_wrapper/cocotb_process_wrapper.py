@@ -444,6 +444,7 @@ def main() -> None:
                     build_dir=Path(build_dir),
                     test_dir=test_dir,
                     output_path=Path(coverage_output_file),
+                    env=env,
                 ),
             )
         except RuntimeError as exc:
@@ -461,6 +462,11 @@ class _CoverageInputs(NamedTuple):
     build_dir: Path
     test_dir: Path
     output_path: Path
+    # Same composed env the cocotb runner subprocess saw. Important for
+    # coverage tools that need to re-invoke the simulator (e.g. Aldec
+    # `vsimsa` for ACDB→lcov conversion) — they need `RIVIERA_HOME` and
+    # the rest of the install vars the sim's `env` attr provided.
+    env: dict[str, str]
 
 
 def _emit_coverage_lcov(runfiles: Runfiles, inputs: "_CoverageInputs") -> None:
@@ -503,6 +509,7 @@ def _emit_coverage_lcov(runfiles: Runfiles, inputs: "_CoverageInputs") -> None:
     )
     cov_result = subprocess.run(
         [str(tool_path)] + cli_args,
+        env=inputs.env,
         check=False,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
