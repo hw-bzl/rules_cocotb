@@ -1,0 +1,16 @@
+load("@rules_venv//python:defs.bzl", "py_binary", "py_library")
+
+py_library(
+    name = "stubgen_lib",
+    srcs = ["stubgen.py"],
+    imports = ["."],
+    visibility = ["//tests/stubgen:__pkg__"],
+)
+
+py_binary(
+    name = "stubgen",
+    srcs = ["stubgen.py"],
+    imports = ["."],
+    main = "stubgen.py",
+    visibility = ["//visibility:public"],
+)

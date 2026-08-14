@@ -1,5 +1,5 @@
 {
-  "lockFileVersion": 26,
+  "lockFileVersion": 28,
   "registryFileHashes": {
     "https://bcr.bazel.build/bazel_registry.json": "8a28e4aff06ee60aed2a8c281907fb8bcbf3b753c91fb5a5c57da3215d5b3497",
     "https://bcr.bazel.build/modules/abseil-cpp/20210324.2/MODULE.bazel": "7cd0312e064fde87c8d1cd79ba06c876bd23630c83466e9500321be55c96ace2",
@@ -226,16 +226,20 @@
     "https://bcr.bazel.build/modules/rules_swift/3.1.2/source.json": "e85761f3098a6faf40b8187695e3de6d97944e98abd0d8ce579cb2daf6319a66",
     "https://bcr.bazel.build/modules/rules_venv/0.15.0/MODULE.bazel": "0eff85b23205d0f6928e3438038165e704d4123973aefa94ff03c7e93be770a7",
     "https://bcr.bazel.build/modules/rules_venv/0.18.0/MODULE.bazel": "5d600ed0ae8abb44fdea5ac70d0cc5f7a457dcbb819314097df24e51cafb5a91",
-    "https://bcr.bazel.build/modules/rules_venv/0.18.0/source.json": "73dae6ba9abb0b641038e55b7afebab3917cba04e52d2f09596d172e92083bab",
+    "https://bcr.bazel.build/modules/rules_venv/0.23.0/MODULE.bazel": "ac20d0f20ae234434d0ea2bb0302b80bb29e6f8d959fe28362b7d1f708fc2ec0",
+    "https://bcr.bazel.build/modules/rules_venv/0.23.0/source.json": "549dff6c5503f41c8da5e93128327b280f90cbf35ab53605c27c3b3111c81bd0",
     "https://bcr.bazel.build/modules/rules_venv/0.7.0/MODULE.bazel": "20a844b0bbac189e11af899d09de249a7f766b361aa49f4870134136e6c4bd0d",
-    "https://bcr.bazel.build/modules/rules_verilator/0.3.2/MODULE.bazel": "6457b21d087e178e2a84aed353d99bff55bdcc228b70ff71d5828340d6f7393e",
-    "https://bcr.bazel.build/modules/rules_verilator/0.3.2/source.json": "a954596ae167f7b655647a1b2399f26d8e9a01484f38ddbff133b23ce773af62",
-    "https://bcr.bazel.build/modules/rules_verilog/1.1.0/MODULE.bazel": "7b1d2d0321566572b61b76a4b4c263ce4da27ee0437552e1c70cff838101db57",
-    "https://bcr.bazel.build/modules/rules_verilog/1.1.1/MODULE.bazel": "adcccf08f92e16936d6aa2e872f31a79e80712333be604de750d4b109fae1519",
-    "https://bcr.bazel.build/modules/rules_verilog/1.2.0/MODULE.bazel": "6e87d9b2a9f7232d9967ad936de06a198414e7efe9485cc6186485720836ed29",
-    "https://bcr.bazel.build/modules/rules_verilog/1.2.0/source.json": "34270ce5ba7ceb88a1ebb15e39a3bd57084012b1997ef3f367f65447677af8b9",
+    "https://bcr.bazel.build/modules/rules_verilator/1.1.1/MODULE.bazel": "602112fdf2bd18036c2fa61415caf324f00ef04eda93e5a99a04e27c2f684c38",
+    "https://bcr.bazel.build/modules/rules_verilator/1.1.1/source.json": "ebe33b895594bfc388e9d63a2decdf3df67927b44e458dba5d1d69b7bdc9d8f2",
+    "https://bcr.bazel.build/modules/rules_verilog/1.4.0/MODULE.bazel": "c6f7953824237a448a8d57f167fec195a5df35e82f112a7daf0a28eba69731f4",
+    "https://bcr.bazel.build/modules/rules_verilog/1.4.1/MODULE.bazel": "4a97926a2ec0807b7ecba376f7a6422e88ec5391374b4461f866376aeb70460c",
+    "https://bcr.bazel.build/modules/rules_verilog/1.4.2/MODULE.bazel": "f995e185b0fd68c241ed6be5326b4654c6c0901245a04167dba46be8e10e7167",
+    "https://bcr.bazel.build/modules/rules_verilog/1.4.2/source.json": "21e985ca230c4ee58e5107f4773fd3df4e6787c6d289e1381ab72472074e5548",
     "https://bcr.bazel.build/modules/rules_vhdl/0.2.0/MODULE.bazel": "f9f40eca03d43dc69dd7679c76f3ee8dab25ce1433b2db1383a3d4d6b415de80",
-    "https://bcr.bazel.build/modules/rules_vhdl/0.2.0/source.json": "da3bae1b3135360ac1885d12b4423726a8f85616a3a28a5571bc8484d2bdfdf8",
+    "https://bcr.bazel.build/modules/rules_vhdl/0.3.0/MODULE.bazel": "6a87aed4328bf128ba233c428e97e68d5308fdbd834bd543058a8ad52e5292f6",
+    "https://bcr.bazel.build/modules/rules_vhdl/0.4.0/MODULE.bazel": "c13ed01122f2d2c82fc74a93d36a2fad7ec84b5169cb1f3721f64ffc1c3a3287",
+    "https://bcr.bazel.build/modules/rules_vhdl/0.4.1/MODULE.bazel": "db9a752c570280061057c2d70dc146005086c7769fe789b798cf2fa8b322259f",
+    "https://bcr.bazel.build/modules/rules_vhdl/0.4.1/source.json": "44fbf58a182466bce3106d641e8fa40eb5e393d8128895787db9bb66c3c51711",
     "https://bcr.bazel.build/modules/stardoc/0.5.1/MODULE.bazel": "1a05d92974d0c122f5ccf09291442580317cdd859f07a8655f1db9a60374f9f8",
     "https://bcr.bazel.build/modules/stardoc/0.5.3/MODULE.bazel": "c7f6948dae6999bf0db32c1858ae345f112cacf98f174c7a8bb707e41b974f1c",
     "https://bcr.bazel.build/modules/stardoc/0.7.0/MODULE.bazel": "05e3d6d30c099b6770e97da986c53bd31844d7f13d41412480ea265ac9e8079c",
@@ -264,7 +268,7 @@
   "moduleExtensions": {
     "@@rules_kotlin+//src/main/starlark/core/repositories:bzlmod_setup.bzl%rules_kotlin_extensions": {
       "general": {
-        "bzlTransitiveDigest": "Ga4z8lQy1YQ5rAMy+dOl0dqcCEBnYNCXku8x3YQmDZI=",
+        "bzlTransitiveDigest": "+Kp6j204mBZ3mxlIDDR0gBoP45BZ4jYRhRAcB8sU0qc=",
         "usagesDigest": "QI2z8ZUR+mqtbwsf2fLqYdJAkPOHdOV+tF2yVAUgRzw=",
         "recordedInputs": [
           "REPO_MAPPING:rules_kotlin+,bazel_tools bazel_tools"
@@ -379,5 +383,6 @@
       }
     }
   },
-  "facts": {}
+  "facts": {},
+  "factsVersions": {}
 }

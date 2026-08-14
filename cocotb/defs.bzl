@@ -37,6 +37,10 @@ load(
     _cocotb_riviera_sim = "cocotb_riviera_sim",
 )
 load(
+    ":cocotb_stubgen.bzl",
+    _cocotb_stubgen = "cocotb_stubgen",
+)
+load(
     ":cocotb_test.bzl",
     _cocotb_test = "cocotb_test",
 )
@@ -66,6 +70,7 @@ cocotb_icarus_sim = _cocotb_icarus_sim
 cocotb_nvc_sim = _cocotb_nvc_sim
 cocotb_questa_sim = _cocotb_questa_sim
 cocotb_riviera_sim = _cocotb_riviera_sim
+cocotb_stubgen = _cocotb_stubgen
 cocotb_test = _cocotb_test
 cocotb_toolchain = _cocotb_toolchain
 cocotb_vcs_sim = _cocotb_vcs_sim

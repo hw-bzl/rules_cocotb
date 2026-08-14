@@ -1,0 +1,47 @@
+load("@rules_venv//python/pytest:defs.bzl", "py_pytest_test")
+load("@rules_vhdl//vhdl:defs.bzl", "vhdl_library")
+load("//cocotb:defs.bzl", "cocotb_stubgen", "cocotb_test")
+
+py_pytest_test(
+    name = "stubgen_test",
+    srcs = ["stubgen_test.py"],
+    args = ["--capture=no"],
+    deps = [
+        "//tools/stubgen:stubgen_lib",
+    ],
+)
+
+vhdl_library(
+    name = "counter",
+    srcs = ["counter.vhd"],
+)
+
+cocotb_stubgen(
+    name = "counter_stubs",
+    module = ":counter",
+)
+
+# Runtime smoke test: proves the aspect-generated stub file is materialised
+# on sys.path via `cocotb_stubgen`'s PyInfo. No simulator required.
+py_pytest_test(
+    name = "counter_stubs_import_test",
+    srcs = ["counter_stubs_import_test.py"],
+    deps = [
+        ":counter_stubs",
+        "@cocotb_pip_deps//cocotb",
+    ],
+)
+
+# End-to-end: the stub target flows into a cocotb_test via `deps` — the
+# testbench imports the Protocol under TYPE_CHECKING so the sim still
+# starts cleanly at runtime.
+cocotb_test(
+    name = "counter_test",
+    srcs = ["counter_test.py"],
+    module = ":counter",
+    sim = "ghdl",
+    target_compatible_with = [
+        "@platforms//os:linux",
+    ],
+    deps = [":counter_stubs"],
+)
