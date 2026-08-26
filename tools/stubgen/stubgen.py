@@ -36,9 +36,11 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import bisect
+import json
 import re
 import sys
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import NamedTuple
 
@@ -166,6 +168,33 @@ _VHDL_ARCHITECTURE_RE = re.compile(
     re.DOTALL | re.IGNORECASE | re.VERBOSE,
 )
 
+_VHDL_ARCHITECTURE_HEADER_RE = re.compile(
+    r"\barchitecture\s+[a-zA-Z_]\w*\s+of\s+(?P<entity>[a-zA-Z_]\w*)\s+is\b",
+    re.IGNORECASE,
+)
+
+# Matches `<label> : [component ]entity [<lib>.]<name>[(<arch>)]` — the label
+# is the identifier cocotb exposes as a child handle on the parent hierarchy.
+# Both direct entity instantiations (`work.dut`) and configuration-less
+# component instantiations are captured; the referenced entity name is used
+# to look up a class from the current stub set for typed nested access.
+#
+# The `(?!is\b)` guard rejects VHDL attribute specifications of the form
+# `attribute foreign of <ent> : entity is "binding";` — `is` is a reserved
+# word, so no real entity can bear that name, but the shared `<x> : entity`
+# skeleton would otherwise let attribute specs masquerade as instantiations
+# and inject a spurious `<ent>: Is` field on the enclosing architecture.
+_VHDL_INSTANCE_RE = re.compile(
+    r"""
+    \b(?P<label>[a-zA-Z_]\w*)\s*:\s*
+    (?:component\s+)?entity\s+
+    (?:[a-zA-Z_]\w*\s*\.\s*)?              # optional library prefix
+    (?P<name>(?!is\b)[a-zA-Z_]\w*)
+    (?:\s*\(\s*[a-zA-Z_]\w*\s*\))?         # optional (architecture)
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+
 _VHDL_SIGNAL_RE = re.compile(
     r"""
     \bsignal\s+
@@ -270,18 +299,47 @@ def _parse_vhdl_entity(  # pylint: disable=too-many-locals
     return name, fields, end_pos
 
 
-def _parse_vhdl(text: str) -> list[EntityStub]:
-    """Extract entity + architecture-signal stubs from VHDL source."""
-    stripped = _strip_vhdl_comments(text)
+def _collect_vhdl_arch_fields(stripped: str) -> dict[str, list[Field]]:
+    """Build `entity_name.lower() -> extra Field list` from architecture bodies.
 
+    Two sources feed the map: (a) `signal` declarations inside each
+    architecture, and (b) component / entity instantiations, each attributed
+    to the last architecture header that appears before it in the text.
+    VHDL disallows nested architectures, so that lookback is unambiguous;
+    robust body extraction via regex would otherwise trip on nested
+    `end process`/`end loop`.
+    """
     arch_signals: dict[str, list[Field]] = {}
     for arch in _VHDL_ARCHITECTURE_RE.finditer(stripped):
-        key = arch.group("entity").lower()
-        entries = arch_signals.setdefault(key, [])
+        entries = arch_signals.setdefault(arch.group("entity").lower(), [])
         for match in _VHDL_SIGNAL_RE.finditer(arch.group("decls")):
             py_type = _vhdl_map_type(match.group("subtype"))
             for raw in match.group("names").split(","):
                 entries.append(Field(name=raw.strip(), py_type=py_type))
+
+    arch_headers = list(_VHDL_ARCHITECTURE_HEADER_RE.finditer(stripped))
+    header_ends = [h.end() for h in arch_headers]
+    for inst in _VHDL_INSTANCE_RE.finditer(stripped):
+        # `arch_headers` is finditer-order (sorted by position). Binary-search
+        # for the last header whose `end()` is ≤ inst.start() — avoids a full
+        # O(N) rescan per instance.
+        idx = bisect.bisect_right(header_ends, inst.start()) - 1
+        if idx < 0:
+            continue
+        entity = arch_headers[idx].group("entity").lower()
+        arch_signals.setdefault(entity, []).append(
+            Field(
+                name=inst.group("label"),
+                py_type=_class_name(inst.group("name")),
+            ),
+        )
+    return arch_signals
+
+
+def _parse_vhdl(text: str) -> list[EntityStub]:
+    """Extract entity + architecture-signal stubs from VHDL source."""
+    stripped = _strip_vhdl_comments(text)
+    arch_signals = _collect_vhdl_arch_fields(stripped)
 
     stubs: list[EntityStub] = []
     offset = 0
@@ -424,23 +482,30 @@ def extract(paths: Iterable[Path]) -> list[EntityStub]:
     return stubs
 
 
-def render(stubs: Iterable[EntityStub]) -> str:  # pylint: disable=too-many-branches
-    """Render a list of stubs to a formatted Python module string.
+_BARE_CLASS_REF_RE = re.compile(r"[A-Z]\w*")
 
-    Each stub becomes a `HierarchyObject` subclass. Subclassing (rather
-    than `typing.Protocol`) lets testbench code annotate the DUT
-    parameter directly — `async def test(dut: MyDut)` — because
-    `MyDut` is-a `HierarchyObject`, which is what cocotb hands the
-    test at runtime.
 
-    Raises `ValueError` if two stubs would collide on the emitted class
-    name (e.g. two entities in the same input set whose snake_case names
-    both PascalCase to the same identifier). Silent duplication would let
-    the second class definition win under Python's late-binding and mypy
-    would type against whichever came last.
+def _is_bare_class_ref(py_type: str) -> bool:
+    """True if `py_type` is a single PascalCase identifier that could name a user class.
+
+    Bare identifiers are the only shape a user-defined class reference can
+    take here (they come from `_class_name()`). Composite types like
+    `ArrayObject[IntegerObject]` and lowercase primitives skip resolution.
+    `Any` also shortcuts out — it's the `typing.Any` sentinel that means
+    "unresolved," never a user class, even if a Verilog module happened to
+    be named `any` and produced a colliding `Any` class name elsewhere.
     """
-    stubs = list(stubs)
+    if py_type == "Any":
+        return False
+    return _BARE_CLASS_REF_RE.fullmatch(py_type) is not None
 
+
+def _reject_duplicate_class_names(stubs: list[EntityStub]) -> dict[str, EntityStub]:
+    """Return `class_name -> EntityStub` map, raising on collision.
+
+    Silent duplication would let Python's late-binding hand mypy whichever
+    class came last, so we fail loudly instead.
+    """
     seen: dict[str, EntityStub] = {}
     duplicates: list[tuple[EntityStub, EntityStub]] = []
     for stub in stubs:
@@ -458,15 +523,46 @@ def render(stubs: Iterable[EntityStub]) -> str:  # pylint: disable=too-many-bran
                 f"entity '{prior.entity_name}'"
             )
         raise ValueError("\n".join(report))
+    return seen
 
-    if not stubs:
-        return (
-            '"""Auto-generated cocotb DUT stubs. Do not edit."""\n'
-            "# No entities / modules found in the input HDL sources.\n"
-        )
 
-    # Determine minimal set of cocotb handle types to import. Every stub
-    # subclasses `HierarchyObject`, so it's always required.
+def _resolve_field_types(
+    stubs: list[EntityStub],
+    known_class_names: set[str],
+    dep_metadata: Mapping[str, str],
+) -> tuple[list[EntityStub], dict[str, str]]:
+    """Resolve each field's `py_type` against locals, cocotb builtins, and dep_metadata.
+
+    Returns `(resolved_stubs, imports_needed)` where `imports_needed` maps
+    class name → module import path for every dep-metadata-resolved reference.
+    Unresolvable class references downgrade to `Any` so the runtime handle
+    stays attribute-permissive.
+    """
+    imports_needed: dict[str, str] = {}
+    resolved_stubs: list[EntityStub] = []
+    for stub in stubs:
+        resolved_fields: list[Field] = []
+        for field in stub.fields:
+            if not _is_bare_class_ref(field.py_type):
+                resolved_fields.append(field)
+            elif field.py_type in _ALL_COCOTB_TYPES:
+                resolved_fields.append(field)
+            elif field.py_type in known_class_names:
+                resolved_fields.append(field)
+            elif field.py_type in dep_metadata:
+                resolved_fields.append(field)
+                imports_needed[field.py_type] = dep_metadata[field.py_type]
+            else:
+                resolved_fields.append(field._replace(py_type="Any"))
+        resolved_stubs.append(stub._replace(fields=tuple(resolved_fields)))
+    return resolved_stubs, imports_needed
+
+
+def _collect_type_usage(stubs: list[EntityStub]) -> tuple[set[str], bool]:
+    """Return (cocotb handle types used, whether `Any` appears anywhere).
+
+    `HierarchyObject` is always present since every stub subclasses it.
+    """
     used_types: set[str] = {"HierarchyObject"}
     needs_any = False
     for stub in stubs:
@@ -476,13 +572,77 @@ def render(stubs: Iterable[EntityStub]) -> str:  # pylint: disable=too-many-bran
                     used_types.add(name)
                 elif name == "Any":
                     needs_any = True
+    return used_types, needs_any
 
+
+def _render_dep_imports(imports_needed: Mapping[str, str]) -> list[str]:
+    """Format the `from <module> import ...` block for dep-resolved classes."""
+    if not imports_needed:
+        return []
+    by_module: dict[str, list[str]] = {}
+    for class_name, module in imports_needed.items():
+        by_module.setdefault(module, []).append(class_name)
     lines: list[str] = []
-    lines.append('"""Auto-generated cocotb DUT stubs. Do not edit.')
-    lines.append("")
-    lines.append(f"Emitted from {len(stubs)} entity/module declaration(s).")
-    lines.append('"""')
-    lines.append("")
+    for module in sorted(by_module):
+        names = sorted(by_module[module])
+        lines.append("")
+        if len(names) == 1:
+            lines.append(f"from {module} import {names[0]}")
+        else:
+            lines.append(f"from {module} import (")
+            for name in names:
+                lines.append(f"    {name},")
+            lines.append(")")
+    return lines
+
+
+def render(
+    stubs: Iterable[EntityStub],
+    dep_metadata: Mapping[str, str] | None = None,
+) -> str:
+    """Render a list of stubs to a formatted Python module string.
+
+    Each stub becomes a `HierarchyObject` subclass. Subclassing (rather
+    than `typing.Protocol`) lets testbench code annotate the DUT
+    parameter directly — `async def test(dut: MyDut)` — because
+    `MyDut` is-a `HierarchyObject`, which is what cocotb hands the
+    test at runtime.
+
+    `dep_metadata` maps class names exported by dependency stub modules
+    to the dotted Python module they live in (loaded from sibling
+    `.json` files emitted by prior `stubgen` invocations). A field that
+    references a class in `dep_metadata` renders typed with a matching
+    `from <module> import <Class>` line; a field that references a class
+    resolvable neither locally nor via `dep_metadata` still falls back
+    to `Any` — same behavior as when `dep_metadata` is empty.
+
+    Raises `ValueError` if two stubs would collide on the emitted class
+    name (e.g. two entities in the same input set whose snake_case names
+    both PascalCase to the same identifier).
+    """
+    stubs = list(stubs)
+    seen = _reject_duplicate_class_names(stubs)
+
+    if not stubs:
+        return (
+            '"""Auto-generated cocotb DUT stubs. Do not edit."""\n'
+            "# No entities / modules found in the input HDL sources.\n"
+        )
+
+    stubs, imports_needed = _resolve_field_types(
+        stubs,
+        set(seen.keys()),
+        dep_metadata or {},
+    )
+    used_types, needs_any = _collect_type_usage(stubs)
+
+    lines: list[str] = [
+        '"""Auto-generated cocotb DUT stubs. Do not edit.',
+        "",
+        f"Emitted from {len(stubs)} entity/module declaration(s).",
+        '"""',
+        "",
+    ]
     if needs_any:
         lines.append("from typing import Any")
         lines.append("")
@@ -490,6 +650,7 @@ def render(stubs: Iterable[EntityStub]) -> str:  # pylint: disable=too-many-bran
     for name in sorted(used_types):
         lines.append(f"    {name},")
     lines.append(")")
+    lines.extend(_render_dep_imports(imports_needed))
 
     for stub in stubs:
         lines.append("")
@@ -505,29 +666,111 @@ def render(stubs: Iterable[EntityStub]) -> str:  # pylint: disable=too-many-bran
     return "\n".join(lines) + "\n"
 
 
+def write_metadata(
+    path: Path,
+    module_import_path: str,
+    stubs: Iterable[EntityStub],
+) -> None:
+    """Emit the sibling `.json` metadata file for downstream stubgen runs.
+
+    Internal, tool-owned: the same `stubgen` binary writes and reads this
+    within one Bazel build, so the schema is only what a consumer needs to
+    write `from <module_import_path> import <ClassName>` for a cross-file
+    class reference.
+    """
+    data = {
+        "module_import_path": module_import_path,
+        "class_names": sorted(stub.class_name for stub in stubs),
+    }
+    path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+
+
+def _load_dep_metadata(paths: Iterable[Path]) -> dict[str, str]:
+    """Merge dep metadata files into a `class_name -> module_import_path` map.
+
+    First-seen wins on collision — matches Python's `from x import Y` /
+    `from z import Y` shadowing semantics, and keeps the merge deterministic
+    given a stable input order (which Bazel provides via its depset ordering).
+    A cross-module collision emits a stderr warning so the caller notices when
+    a common name like `Fifo` gets silently resolved to whichever library
+    Bazel happened to visit first.
+    """
+    dep_metadata: dict[str, str] = {}
+    for path in paths:
+        data = json.loads(path.read_text())
+        module = data["module_import_path"]
+        for class_name in data["class_names"]:
+            existing = dep_metadata.get(class_name)
+            if existing is None:
+                dep_metadata[class_name] = module
+            elif existing != module:
+                print(
+                    f"stubgen: warning: dep-metadata class {class_name!r} "
+                    f"defined in both {existing!r} and {module!r}; using "
+                    f"{existing!r}.",
+                    file=sys.stderr,
+                )
+    return dep_metadata
+
+
 def main(argv: list[str] | None = None) -> int:
-    """CLI entrypoint."""
+    """CLI entrypoint.
+
+    Processes every `--stub` entry in one invocation — the calling aspect
+    passes an entry per HDL source in the library. Batching all of a
+    library's srcs into one process amortizes the Python/sandbox startup
+    cost (which is ~10-50× the actual per-src work) and lets sibling
+    cross-references resolve in-memory instead of via a separate Bazel
+    action pass.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--output",
-        "-o",
-        type=Path,
-        required=True,
-        help="Path to the Python module to emit.",
+        "--stub",
+        nargs=4,
+        action="append",
+        default=[],
+        metavar=("SRC", "OUTPUT", "METADATA", "MODULE_IMPORT_PATH"),
+        help=(
+            "One HDL source with its per-src outputs and dotted Python "
+            "import path. Repeat once per src in the library."
+        ),
     )
     parser.add_argument(
-        "sources",
+        "--dep-metadata",
         type=Path,
-        nargs="+",
-        help="HDL source files (.vhd/.vhdl/.v/.sv) to parse.",
+        action="append",
+        default=[],
+        help=(
+            "Path to a dependency library's `.json` metadata file. May be "
+            "repeated. Class names found in these files are typed rather "
+            "than downgraded to `Any` when referenced by a field."
+        ),
     )
     args = parser.parse_args(argv)
+    if not args.stub:
+        return 0
     try:
-        rendered = render(extract(args.sources))
+        # Phase 1: parse each src, write its metadata, and thread the just-
+        # written class names into the dep_metadata map so sibling srcs'
+        # render pass sees them. Local (same-src) class names still take
+        # precedence in `render()`, so a self-reference stays untyped-by-
+        # import as intended.
+        dep_metadata = _load_dep_metadata(args.dep_metadata)
+        per_src: list[tuple[Path, list[EntityStub]]] = []
+        for src, output, metadata, module_import_path in args.stub:
+            stubs = extract([Path(src)])
+            write_metadata(Path(metadata), module_import_path, stubs)
+            for stub in stubs:
+                dep_metadata.setdefault(stub.class_name, module_import_path)
+            per_src.append((Path(output), stubs))
+
+        # Phase 2: render each `.py` with the combined dep_metadata.
+        for output, stubs in per_src:
+            rendered = render(stubs, dep_metadata=dep_metadata)
+            output.write_text(rendered)
     except ValueError as exc:
         print(f"stubgen: {exc}", file=sys.stderr)
         return 1
-    args.output.write_text(rendered)
     return 0
 
 

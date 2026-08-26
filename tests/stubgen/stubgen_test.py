@@ -5,10 +5,20 @@
 # can't see through the parser, so silence its "unbalanced" warning.
 # pylint: disable=unbalanced-tuple-unpacking
 
+import json
+from pathlib import Path
 from textwrap import dedent
 
 import pytest
-from stubgen import EntityStub, Field, _parse_verilog, _parse_vhdl, render
+from stubgen import (
+    EntityStub,
+    Field,
+    _load_dep_metadata,
+    _parse_verilog,
+    _parse_vhdl,
+    render,
+    write_metadata,
+)
 
 # ---------------------------------------------------------------------------
 # VHDL
@@ -135,6 +145,66 @@ def test_vhdl_entity_name_to_class_name() -> None:
     """Snake-case entity names become PascalCase class names."""
     [stub] = _parse_vhdl("entity slr_accumulate_tb is end entity;")
     assert stub.class_name == "SlrAccumulateTb"
+
+
+def test_vhdl_architecture_instantiation_typed_when_dut_present() -> None:
+    """`<label> : entity work.<name>` yields a typed field on the parent stub."""
+    src = dedent("""
+        entity slr_broadcast is
+          generic (G_DATA_WIDTH : integer := 8);
+        end entity;
+
+        entity slr_broadcast_tb is
+        end entity;
+
+        architecture tb of slr_broadcast_tb is
+        begin
+          dut : entity work.slr_broadcast(rtl)
+            generic map (G_DATA_WIDTH => 8);
+        end architecture;
+        """)
+    rendered = render(_parse_vhdl(src))
+    assert "class SlrBroadcastTb(HierarchyObject):" in rendered
+    assert "    dut: SlrBroadcast" in rendered
+
+
+def test_vhdl_architecture_instantiation_falls_back_to_any_when_dut_absent() -> None:
+    """Instantiation refs downgrade to `Any` when the referenced entity is not in the stub set."""
+    src = dedent("""
+        entity foo_tb is
+        end entity;
+
+        architecture tb of foo_tb is
+        begin
+          dut : entity work.foo_not_in_input;
+          other : entity somelib.mystery(arch);
+        end architecture;
+        """)
+    rendered = render(_parse_vhdl(src))
+    assert "from typing import Any" in rendered
+    assert "    dut: Any" in rendered
+    assert "    other: Any" in rendered
+
+
+def test_vhdl_attribute_entity_is_binding_does_not_synthesize_a_field() -> None:
+    """`attribute foreign of ent : entity is ...` must not masquerade as an instantiation.
+
+    The instance regex would otherwise pluck label='ent' + name='is' out of
+    the attribute specification and attach a spurious `ent: Is` (→ `Any`)
+    field to the enclosing architecture — silently polluting the stub.
+    """
+    src = dedent("""
+        entity foo is
+        end entity;
+
+        architecture rtl of foo is
+        begin
+          attribute foreign of foo : entity is "vhpi (my_pkg,my_impl)";
+        end architecture;
+        """)
+    rendered = render(_parse_vhdl(src))
+    assert "    foo:" not in rendered  # would appear as `foo: Any` if the regex bit
+    assert "class Foo(HierarchyObject):" in rendered
 
 
 # ---------------------------------------------------------------------------
@@ -279,3 +349,139 @@ def test_parse_and_render_flags_within_file_collision() -> None:
     stubs[1] = stubs[1]._replace(class_name="Dut")
     with pytest.raises(ValueError, match="duplicate stub class names"):
         render(stubs)
+
+
+def test_render_preserves_parameterized_cocotb_type() -> None:
+    """Composite cocotb types like `ArrayObject[IntegerObject]` survive resolution."""
+    stubs = [
+        EntityStub(
+            "V",
+            "v",
+            "vhdl",
+            (Field("vec", "ArrayObject[IntegerObject]"),),
+        ),
+    ]
+    src = render(stubs)
+    compile(src, "<generated>", "exec")
+    assert "    vec: ArrayObject[IntegerObject]" in src
+    assert "    vec: Any" not in src
+
+
+# ---------------------------------------------------------------------------
+# Cross-module dep metadata
+# ---------------------------------------------------------------------------
+
+
+def test_render_uses_dep_metadata_to_import_cross_module_class() -> None:
+    """A class ref resolvable via dep_metadata renders typed with an import."""
+    stubs = [
+        EntityStub("FooTb", "foo_tb", "vhdl", (Field("dut", "Foo"),)),
+    ]
+    src = render(stubs, dep_metadata={"Foo": "some.pkg.foo"})
+    compile(src, "<generated>", "exec")
+    assert "from some.pkg.foo import Foo" in src
+    assert "    dut: Foo" in src
+    assert "from typing import Any" not in src
+    assert "    dut: Any" not in src
+
+
+def test_render_downgrades_when_neither_local_nor_dep_has_class() -> None:
+    """Unresolved class refs still fall back to `Any` (pre-metadata behavior)."""
+    stubs = [
+        EntityStub("FooTb", "foo_tb", "vhdl", (Field("dut", "Foo"),)),
+    ]
+    src = render(stubs, dep_metadata={})
+    compile(src, "<generated>", "exec")
+    assert "from typing import Any" in src
+    assert "    dut: Any" in src
+
+
+def test_render_groups_dep_imports_by_module() -> None:
+    """Multiple classes from the same dep module land in one import statement."""
+    stubs = [
+        EntityStub(
+            "Tb",
+            "tb",
+            "vhdl",
+            (Field("a", "AA"), Field("b", "BB")),
+        ),
+    ]
+    src = render(stubs, dep_metadata={"AA": "x.pkg", "BB": "x.pkg"})
+    compile(src, "<generated>", "exec")
+    assert "from x.pkg import (\n    AA,\n    BB,\n)" in src
+
+
+def test_render_local_class_takes_precedence_over_dep_metadata() -> None:
+    """A stub-defined class shadows a dep-metadata class of the same name."""
+    stubs = [
+        EntityStub("Foo", "foo", "vhdl", (Field("clk", "LogicObject"),)),
+        EntityStub("Tb", "tb", "vhdl", (Field("dut", "Foo"),)),
+    ]
+    src = render(stubs, dep_metadata={"Foo": "some.other.foo"})
+    compile(src, "<generated>", "exec")
+    assert "from some.other.foo" not in src
+    assert "class Foo(HierarchyObject):" in src
+    assert "    dut: Foo" in src
+
+
+def test_render_any_field_not_treated_as_dep_class() -> None:
+    """A field whose py_type is literally `Any` must not resolve via dep_metadata.
+
+    Regression: an HDL identifier that happens to PascalCase to `Any` (e.g. a
+    Verilog module named `any`) could otherwise inject `{"Any": ...}` into
+    dep-metadata and collide with the `typing.Any` sentinel used for
+    unresolved / untyped fields.
+    """
+    stubs = [
+        EntityStub("V", "v", "verilog", (Field("clk", "Any"),)),
+    ]
+    src = render(stubs, dep_metadata={"Any": "some.mod"})
+    compile(src, "<generated>", "exec")
+    assert "from some.mod import Any" not in src
+    assert "from typing import Any" in src
+
+
+def test_load_dep_metadata_warns_on_cross_module_collision(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Two dep files exporting the same class from different modules → stderr warning."""
+    a = tmp_path / "a.json"
+    b = tmp_path / "b.json"
+    a.write_text(json.dumps({"module_import_path": "lib.a", "class_names": ["Fifo"]}))
+    b.write_text(json.dumps({"module_import_path": "lib.b", "class_names": ["Fifo"]}))
+    result = _load_dep_metadata([a, b])
+    assert result == {"Fifo": "lib.a"}  # first-seen wins
+    err = capsys.readouterr().err
+    assert "warning" in err
+    assert "'Fifo'" in err
+    assert "'lib.a'" in err
+    assert "'lib.b'" in err
+
+
+def test_load_dep_metadata_silent_when_same_module_re_exports_class(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """No warning when the same class name shows up twice with the same module path."""
+    a = tmp_path / "a.json"
+    b = tmp_path / "b.json"
+    a.write_text(json.dumps({"module_import_path": "lib.x", "class_names": ["Foo"]}))
+    b.write_text(json.dumps({"module_import_path": "lib.x", "class_names": ["Foo"]}))
+    _load_dep_metadata([a, b])
+    assert capsys.readouterr().err == ""
+
+
+def test_write_metadata_emits_deterministic_json(tmp_path: Path) -> None:
+    """The sibling `.json` is minimal and sorted."""
+    stubs = [
+        EntityStub("Zebra", "zebra", "vhdl", ()),
+        EntityStub("Alpha", "alpha", "vhdl", (Field("clk", "LogicObject"),)),
+    ]
+    out = tmp_path / "m.json"
+    write_metadata(out, "pkg.x", stubs)
+    data = json.loads(out.read_text())
+    assert data == {
+        "module_import_path": "pkg.x",
+        "class_names": ["Alpha", "Zebra"],
+    }

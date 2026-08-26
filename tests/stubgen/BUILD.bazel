@@ -1,4 +1,5 @@
 load("@rules_venv//python/pytest:defs.bzl", "py_pytest_test")
+load("@rules_verilog//verilog:defs.bzl", "verilog_library")
 load("@rules_vhdl//vhdl:defs.bzl", "vhdl_library")
 load("//cocotb:defs.bzl", "cocotb_stubgen", "cocotb_test")
 
@@ -28,6 +29,110 @@ py_pytest_test(
     srcs = ["counter_stubs_import_test.py"],
     deps = [
         ":counter_stubs",
+        "@cocotb_pip_deps//cocotb",
+    ],
+)
+
+vhdl_library(
+    name = "counter_tb",
+    srcs = ["counter_tb.vhd"],
+    deps = [":counter"],
+)
+
+cocotb_stubgen(
+    name = "counter_tb_stubs",
+    module = ":counter_tb",
+)
+
+# Transitive smoke test: `counter_tb.vhd` instantiates `entity work.counter`,
+# so the generated `counter_tb.py` stub does `from tests.stubgen.counter
+# import Counter`. That import only resolves at runtime if the aspect
+# propagated the DUT's stub through PyInfo transitively — this test is the
+# assertion that it does.
+py_pytest_test(
+    name = "counter_tb_stubs_import_test",
+    srcs = ["counter_tb_stubs_import_test.py"],
+    deps = [
+        ":counter_tb_stubs",
+        "@cocotb_pip_deps//cocotb",
+    ],
+)
+
+# Cross-workspace transitive test: the DUT is rendered by a repo rule
+# invoked from the `ext_hdl` module extension (see `MODULE.bazel` and
+# `ext_hdl_extension.bzl`). Proves the aspect's per-target
+# `ctx.label.workspace_name` handling and PyInfo aggregation both cross
+# a real Bazel module boundary, and that HDL sources produced by a repo
+# rule (not on disk at parse time) flow through the same actions.
+vhdl_library(
+    name = "ext_dep_dut_tb",
+    srcs = ["ext_dep_dut_tb.vhd"],
+    deps = ["@cocotb_stubgen_ext_hdl//:ext_dep_dut"],
+)
+
+cocotb_stubgen(
+    name = "ext_dep_dut_tb_stubs",
+    module = ":ext_dep_dut_tb",
+)
+
+py_pytest_test(
+    name = "ext_dep_dut_tb_stubs_import_test",
+    srcs = ["ext_dep_dut_tb_stubs_import_test.py"],
+    deps = [
+        ":ext_dep_dut_tb_stubs",
+        "@cocotb_pip_deps//cocotb",
+    ],
+)
+
+# Sibling-src regression: two `.vhd` files in one `vhdl_library` where one
+# instantiates the other. Fails if the aspect's render pass can't see
+# metadata for its own library's siblings.
+vhdl_library(
+    name = "sibling_pair",
+    srcs = [
+        "sibling_inner.vhd",
+        "sibling_top.vhd",
+    ],
+)
+
+cocotb_stubgen(
+    name = "sibling_pair_stubs",
+    module = ":sibling_pair",
+)
+
+py_pytest_test(
+    name = "sibling_pair_stubs_import_test",
+    srcs = ["sibling_pair_stubs_import_test.py"],
+    deps = [
+        ":sibling_pair_stubs",
+        "@cocotb_pip_deps//cocotb",
+    ],
+)
+
+# Cross-language regression: a VHDL testbench that pulls in a Verilog
+# module through `verilog_deps` (not `deps`). Fails if the aspect skips
+# that edge type.
+verilog_library(
+    name = "xlang_verilog_helper",
+    srcs = ["xlang_verilog_helper.sv"],
+)
+
+vhdl_library(
+    name = "xlang_vhdl_tb",
+    srcs = ["xlang_vhdl_tb.vhd"],
+    verilog_deps = [":xlang_verilog_helper"],
+)
+
+cocotb_stubgen(
+    name = "xlang_vhdl_tb_stubs",
+    module = ":xlang_vhdl_tb",
+)
+
+py_pytest_test(
+    name = "xlang_vhdl_tb_stubs_import_test",
+    srcs = ["xlang_vhdl_tb_stubs_import_test.py"],
+    deps = [
+        ":xlang_vhdl_tb_stubs",
         "@cocotb_pip_deps//cocotb",
     ],
 )
