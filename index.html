@@ -169,7 +169,7 @@ open-source HDL simulators (Verilator, Icarus Verilog, GHDL).</p>
 <li>one or more Python <code>cocotb</code> test sources, and</li>
 <li>a <code>cocotb_toolchain</code> that picks the simulator.</li>
 </ul>
-<p>The two top-level rules are documented under
+<p>The top-level rules are documented under
 <a href="./rules.html">Rules</a>; the per-simulator integrations live under
 <a href="./simulators.html">Simulators</a>.</p>
 <h2 id="end-to-end-example"><a class="header" href="#end-to-end-example">End-to-end example</a></h2>
@@ -254,6 +254,9 @@ attribute set (<code>params</code>, <code>sim_opts</code>, <code>env</code>, etc
 define a custom toolchain — for selecting a different default
 simulator, narrowing the set of simulators, or wiring in a
 bring-your-own-install <code>cocotb_*_sim</code>.</li>
+<li>The <a href="./cocotb_stubgen.html"><code>cocotb_stubgen</code></a> reference covers generating
+typed Python stubs from an HDL library, so a testbench's <code>dut</code>
+parameter type-checks instead of being an untyped <code>HierarchyObject</code>.</li>
 <li>The <a href="./simulators.html">Simulators</a> section lists every built-in
 simulator integration and per-simulator status.</li>
 </ul>

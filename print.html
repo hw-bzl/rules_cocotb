@@ -170,7 +170,7 @@ open-source HDL simulators (Verilator, Icarus Verilog, GHDL).</p>
 <li>one or more Python <code>cocotb</code> test sources, and</li>
 <li>a <code>cocotb_toolchain</code> that picks the simulator.</li>
 </ul>
-<p>The two top-level rules are documented under
+<p>The top-level rules are documented under
 <a href="./rules.html">Rules</a>; the per-simulator integrations live under
 <a href="./simulators.html">Simulators</a>.</p>
 <h2 id="end-to-end-example"><a class="header" href="#end-to-end-example">End-to-end example</a></h2>
@@ -255,6 +255,9 @@ attribute set (<code>params</code>, <code>sim_opts</code>, <code>env</code>, etc
 define a custom toolchain — for selecting a different default
 simulator, narrowing the set of simulators, or wiring in a
 bring-your-own-install <code>cocotb_*_sim</code>.</li>
+<li>The <a href="./cocotb_stubgen.html"><code>cocotb_stubgen</code></a> reference covers generating
+typed Python stubs from an HDL library, so a testbench's <code>dut</code>
+parameter type-checks instead of being an untyped <code>HierarchyObject</code>.</li>
 <li>The <a href="./simulators.html">Simulators</a> section lists every built-in
 simulator integration and per-simulator status.</li>
 </ul>
@@ -262,6 +265,7 @@ simulator integration and per-simulator status.</li>
 <ul>
 <li><a href="./cocotb_test.html">cocotb_test</a></li>
 <li><a href="./cocotb_toolchain.html">cocotb_toolchain</a></li>
+<li><a href="./cocotb_stubgen.html">cocotb_stubgen</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
 <p>cocotb_test</p>
@@ -301,7 +305,7 @@ cocotb_test(<a href="cocotb_test.html#cocotb_test-name">name</a>, <a href="cocot
 <pre>
 load("@rules_cocotb//cocotb:cocotb_toolchain.bzl", "cocotb_toolchain")
 
-cocotb_toolchain(<a href="cocotb_toolchain.html#cocotb_toolchain-name">name</a>, <a href="cocotb_toolchain.html#cocotb_toolchain-cocotb">cocotb</a>, <a href="cocotb_toolchain.html#cocotb_toolchain-default_sim">default_sim</a>, <a href="cocotb_toolchain.html#cocotb_toolchain-env">env</a>, <a href="cocotb_toolchain.html#cocotb_toolchain-simulators">simulators</a>)
+cocotb_toolchain(<a href="cocotb_toolchain.html#cocotb_toolchain-name">name</a>, <a href="cocotb_toolchain.html#cocotb_toolchain-cocotb">cocotb</a>, <a href="cocotb_toolchain.html#cocotb_toolchain-default_sim">default_sim</a>, <a href="cocotb_toolchain.html#cocotb_toolchain-env">env</a>, <a href="cocotb_toolchain.html#cocotb_toolchain-simulators">simulators</a>, <a href="cocotb_toolchain.html#cocotb_toolchain-stubgen">stubgen</a>, <a href="cocotb_toolchain.html#cocotb_toolchain-vhdl_libraries">vhdl_libraries</a>)
 </pre>
 <p>Define a toolchain for <code>cocotb_*</code> rules.</p>
 <p>The toolchain bundles a <code>cocotb</code> Python library with a set of HDL
@@ -362,6 +366,39 @@ ahead of <code>//cocotb/toolchain</code> to override the default. <code>default_
 chooses which simulator runs when a <code>cocotb_test</code> omits its own <code>sim</code>
 attribute; it's optional, but if set must name one of the keys in
 <code>simulators</code>.</p>
+<h3 id="overriding-the-stub-generator"><a class="header" href="#overriding-the-stub-generator">Overriding the stub generator</a></h3>
+<p><code>cocotb_stubgen</code> resolves this same toolchain to find the tool that turns
+HDL sources into typed Python stubs, so a project that needs custom type
+mapping sets <code>stubgen</code> here rather than registering anything extra:</p>
+<pre><code class="language-python">cocotb_toolchain(
+    name = "my_cocotb_toolchain",
+    cocotb = "//path/to:cocotb_py_library",
+    simulators = {":cocotb_ghdl": "ghdl"},
+    stubgen = "//path/to:my_stubgen",
+)
+</code></pre>
+<p>Leaving it unset uses the generator shipped with <code>rules_cocotb</code>.</p>
+<h3 id="supplying-vhdl-standard-libraries"><a class="header" href="#supplying-vhdl-standard-libraries">Supplying VHDL standard libraries</a></h3>
+<p><code>vhdl_libraries</code> is optional and empty by default. Left empty, the
+generator works from the parse tree alone: it maps each port's terminal
+type mark (<code>std_logic</code>, <code>unsigned</code>, <code>integer</code>, ...) onto a cocotb handle
+class, which covers designs whose ports are declared in terms of the
+standard types directly.</p>
+<p>Supplying the <code>STD</code> / <code>IEEE</code> sources lets a generator fully elaborate
+instead, so ports declared with project-local aliases and subtypes
+resolve through to their base types:</p>
+<pre><code class="language-python">cocotb_toolchain(
+    name = "my_cocotb_toolchain",
+    cocotb = "//path/to:cocotb_py_library",
+    simulators = {":cocotb_ghdl": "ghdl"},
+    vhdl_libraries = {
+        "@some_vhdl_std//:ieee_srcs": "ieee",
+        "@some_vhdl_std//:std_srcs": "std",
+    },
+)
+</code></pre>
+<p>Each entry maps a target whose files are <code>.vhd</code> sources to the VHDL
+library name they belong to; several targets may share a name.</p>
 <p>Per-simulator API and wiring details live in the
 <a href="./simulators.html">Simulators</a> section.</p>
 <p><strong>ATTRIBUTES</strong></p>
@@ -371,6 +408,73 @@ attribute; it's optional, but if set must name one of the keys in
 <tr><td style="text-align: left"><a id="cocotb_toolchain-default_sim"></a>default_sim</td><td style="text-align: left">An optional default simulator to use.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>""</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_toolchain-env"></a>env</td><td style="text-align: left">Environment variables to set whenever the toolchain invokes a simulator. Applied to every sim registered in <code>simulators</code>; for sim-specific vars (license server, install root, etc.) prefer the per-<code>cocotb_*_sim</code> <code>env</code> attr instead. Precedence at test time: toolchain <code>env</code> &lt; sim <code>env</code> &lt; rule-level <code>cocotb_test(env = ...)</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_toolchain-simulators"></a>simulators</td><td style="text-align: left">A mapping of <code>cocotb_*_sim</code> targets to their matching simulator names. Every target must provide <code>CocotbSimInfo</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: Label -&gt; String</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_toolchain-stubgen"></a>stubgen</td><td style="text-align: left">The stub generator <code>cocotb_stubgen</code> runs. Defaults to the generator shipped with <code>rules_cocotb</code>; override it to swap in a generator that understands project-specific HDL type packages. A replacement must accept repeated <code>--stub SRC OUTPUT METADATA MODULE_IMPORT_PATH</code> groups and repeated <code>--dep-metadata PATH</code> flags, writing a Python stub to <code>OUTPUT</code> and a JSON record of the module's import path and exported class names to <code>METADATA</code>.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>"@rules_cocotb//tools/stubgen"</code></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_toolchain-vhdl_libraries"></a>vhdl_libraries</td><td style="text-align: left">Optional VHDL standard library sources for <code>stubgen</code>, keyed by the library name each target's files belong to. A generator that can fully elaborate uses these to resolve aliases and subtypes down to their base types; the bundled generator works from the parse tree alone and ignores them.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: Label -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
+</tbody></table>
+</div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
+<p>cocotb_stubgen</p>
+<h2 id="rules-3"><a class="header" href="#rules-3">Rules</a></h2>
+<ul>
+<li><a href="cocotb_stubgen.html#cocotb_stubgen">cocotb_stubgen</a></li>
+</ul>
+<p><a id="cocotb_stubgen"></a></p>
+<h2 id="cocotb_stubgen"><a class="header" href="#cocotb_stubgen">cocotb_stubgen</a></h2>
+<pre>
+load("@rules_cocotb//cocotb:cocotb_stubgen.bzl", "cocotb_stubgen")
+
+cocotb_stubgen(<a href="cocotb_stubgen.html#cocotb_stubgen-name">name</a>, <a href="cocotb_stubgen.html#cocotb_stubgen-module">module</a>)
+</pre>
+<p>Generate typed cocotb DUT stubs for an HDL library.</p>
+<p>Point <code>module</code> at a <code>vhdl_library</code> or <code>verilog_library</code> and the rule
+produces a <code>PyInfo</code> target you add to any Python rule's <code>deps</code> (most
+commonly <code>cocotb_test.deps</code>) to make the DUT's ports and signals
+type-check.</p>
+<p>Example — a VHDL DUT <code>tests/foo/dut.vhd</code>:</p>
+<pre><code class="language-python">vhdl_library(
+    name = "dut",
+    srcs = ["dut.vhd"],
+)
+
+cocotb_stubgen(
+    name = "dut_stubs",
+    module = ":dut",
+)
+
+cocotb_test(
+    name = "dut_test",
+    srcs = ["dut_test.py"],
+    module = ":dut",
+    deps = [":dut_stubs"],
+    sim = "ghdl",
+)
+</code></pre>
+<p>One class is emitted per entity / module found in each HDL source, each
+subclassing <code>cocotb.handle.HierarchyObject</code> so it can stand in as the
+DUT parameter's type directly. The import path mirrors the HDL source's
+own package and basename — <code>tests/foo/dut.vhd</code> yields a <code>Dut</code> class
+importable as:</p>
+<pre><code class="language-python">from tests.foo.dut import Dut
+
+async def test(dut: Dut) -&gt; None:
+    dut.clk.value = 0
+</code></pre>
+<p>VHDL ports / generics / architecture signals are typed against cocotb's
+handle hierarchy (<code>LogicObject</code>, <code>LogicArrayObject</code>, <code>IntegerObject</code>, ...).
+Verilog ports, parameters and nets fall back to <code>typing.Any</code> — Verilog
+declarations are effectively untyped once <code>logic</code> / <code>wire</code> / <code>reg</code> are
+flattened. Instantiations in either language type as the instantiated
+entity's own stub class.</p>
+<p>Verilog is parsed without preprocessing, so ports supplied by a macro
+(<code>module m(`MY_PORTS);</code>) are omitted rather than guessed at.</p>
+<p>The generator itself comes from the registered
+<a href="./cocotb_toolchain.html"><code>cocotb_toolchain</code></a>: its <code>stubgen</code> attr
+substitutes a different generator, and its optional <code>vhdl_libraries</code>
+attr supplies the <code>STD</code> / <code>IEEE</code> sources a generator needs to resolve
+project-local aliases and subtypes down to their base types.</p>
+<p><strong>ATTRIBUTES</strong></p>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
+<tr><td style="text-align: left"><a id="cocotb_stubgen-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_stubgen-module"></a>module</td><td style="text-align: left">HDL library (<code>vhdl_library</code> / <code>verilog_library</code>) to stub.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><h1 id="simulators"><a class="header" href="#simulators">Simulators</a></h1>
 <p>A simulator integration is a Bazel rule that wires a specific HDL
@@ -418,7 +522,7 @@ runner support upstream we can add the wiring.</p>
 patterns are inline on each simulator's reference page.</p>
 <div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
 <p>cocotb_ghdl_sim</p>
-<h2 id="rules-3"><a class="header" href="#rules-3">Rules</a></h2>
+<h2 id="rules-4"><a class="header" href="#rules-4">Rules</a></h2>
 <ul>
 <li><a href="cocotb_ghdl_sim.html#cocotb_ghdl_sim">cocotb_ghdl_sim</a></li>
 </ul>
@@ -460,7 +564,7 @@ libraries from the BCR <code>ghdl</code> module — most projects want
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
 <p>cocotb_icarus_sim</p>
-<h2 id="rules-4"><a class="header" href="#rules-4">Rules</a></h2>
+<h2 id="rules-5"><a class="header" href="#rules-5">Rules</a></h2>
 <ul>
 <li><a href="cocotb_icarus_sim.html#cocotb_icarus_sim">cocotb_icarus_sim</a></li>
 </ul>
@@ -497,7 +601,7 @@ with a <code>verilog_library</code> target as the <code>module</code>.</p>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
 <p>cocotb_verilator_sim</p>
-<h2 id="rules-5"><a class="header" href="#rules-5">Rules</a></h2>
+<h2 id="rules-6"><a class="header" href="#rules-6">Rules</a></h2>
 <ul>
 <li><a href="cocotb_verilator_sim.html#cocotb_verilator_sim">cocotb_verilator_sim</a></li>
 </ul>
@@ -542,7 +646,7 @@ the rule extracts what it needs internally.</p>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
 <p>cocotb_nvc_sim</p>
-<h2 id="rules-6"><a class="header" href="#rules-6">Rules</a></h2>
+<h2 id="rules-7"><a class="header" href="#rules-7">Rules</a></h2>
 <ul>
 <li><a href="cocotb_nvc_sim.html#cocotb_nvc_sim">cocotb_nvc_sim</a></li>
 </ul>
@@ -583,7 +687,7 @@ simulation time.</p>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
 <p>cocotb_questa_sim</p>
-<h2 id="rules-7"><a class="header" href="#rules-7">Rules</a></h2>
+<h2 id="rules-8"><a class="header" href="#rules-8">Rules</a></h2>
 <ul>
 <li><a href="cocotb_questa_sim.html#cocotb_questa_sim">cocotb_questa_sim</a></li>
 </ul>
@@ -624,7 +728,7 @@ the test execution environment.</p>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
 <p>cocotb_xcelium_sim</p>
-<h2 id="rules-8"><a class="header" href="#rules-8">Rules</a></h2>
+<h2 id="rules-9"><a class="header" href="#rules-9">Rules</a></h2>
 <ul>
 <li><a href="cocotb_xcelium_sim.html#cocotb_xcelium_sim">cocotb_xcelium_sim</a></li>
 </ul>
@@ -658,7 +762,7 @@ compiler internally, so only the one binary attr is needed.</p>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
 <p>cocotb_vcs_sim</p>
-<h2 id="rules-9"><a class="header" href="#rules-9">Rules</a></h2>
+<h2 id="rules-10"><a class="header" href="#rules-10">Rules</a></h2>
 <ul>
 <li><a href="cocotb_vcs_sim.html#cocotb_vcs_sim">cocotb_vcs_sim</a></li>
 </ul>
@@ -692,7 +796,7 @@ attribute.</p>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
 <p>cocotb_dsim_sim</p>
-<h2 id="rules-10"><a class="header" href="#rules-10">Rules</a></h2>
+<h2 id="rules-11"><a class="header" href="#rules-11">Rules</a></h2>
 <ul>
 <li><a href="cocotb_dsim_sim.html#cocotb_dsim_sim">cocotb_dsim_sim</a></li>
 </ul>
@@ -725,7 +829,7 @@ phases internally, so only the one binary attr is needed.</p>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
 <p>cocotb_riviera_sim</p>
-<h2 id="rules-11"><a class="header" href="#rules-11">Rules</a></h2>
+<h2 id="rules-12"><a class="header" href="#rules-12">Rules</a></h2>
 <ul>
 <li><a href="cocotb_riviera_sim.html#cocotb_riviera_sim">cocotb_riviera_sim</a></li>
 </ul>
@@ -787,7 +891,7 @@ and <code>cocotb_test(sim = "riviera", ...)</code> will resolve through it.</p>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><!-- Generated with Stardoc: http://skydoc.bazel.build -->
 <p>cocotb_activehdl_sim</p>
-<h2 id="rules-12"><a class="header" href="#rules-12">Rules</a></h2>
+<h2 id="rules-13"><a class="header" href="#rules-13">Rules</a></h2>
 <ul>
 <li><a href="cocotb_activehdl_sim.html#cocotb_activehdl_sim">cocotb_activehdl_sim</a></li>
 </ul>

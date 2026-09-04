@@ -166,7 +166,7 @@
 <pre>
 load("@rules_cocotb//cocotb:cocotb_toolchain.bzl", "cocotb_toolchain")
 
-cocotb_toolchain(<a href="#cocotb_toolchain-name">name</a>, <a href="#cocotb_toolchain-cocotb">cocotb</a>, <a href="#cocotb_toolchain-default_sim">default_sim</a>, <a href="#cocotb_toolchain-env">env</a>, <a href="#cocotb_toolchain-simulators">simulators</a>)
+cocotb_toolchain(<a href="#cocotb_toolchain-name">name</a>, <a href="#cocotb_toolchain-cocotb">cocotb</a>, <a href="#cocotb_toolchain-default_sim">default_sim</a>, <a href="#cocotb_toolchain-env">env</a>, <a href="#cocotb_toolchain-simulators">simulators</a>, <a href="#cocotb_toolchain-stubgen">stubgen</a>, <a href="#cocotb_toolchain-vhdl_libraries">vhdl_libraries</a>)
 </pre>
 <p>Define a toolchain for <code>cocotb_*</code> rules.</p>
 <p>The toolchain bundles a <code>cocotb</code> Python library with a set of HDL
@@ -227,6 +227,39 @@ ahead of <code>//cocotb/toolchain</code> to override the default. <code>default_
 chooses which simulator runs when a <code>cocotb_test</code> omits its own <code>sim</code>
 attribute; it's optional, but if set must name one of the keys in
 <code>simulators</code>.</p>
+<h3 id="overriding-the-stub-generator"><a class="header" href="#overriding-the-stub-generator">Overriding the stub generator</a></h3>
+<p><code>cocotb_stubgen</code> resolves this same toolchain to find the tool that turns
+HDL sources into typed Python stubs, so a project that needs custom type
+mapping sets <code>stubgen</code> here rather than registering anything extra:</p>
+<pre><code class="language-python">cocotb_toolchain(
+    name = "my_cocotb_toolchain",
+    cocotb = "//path/to:cocotb_py_library",
+    simulators = {":cocotb_ghdl": "ghdl"},
+    stubgen = "//path/to:my_stubgen",
+)
+</code></pre>
+<p>Leaving it unset uses the generator shipped with <code>rules_cocotb</code>.</p>
+<h3 id="supplying-vhdl-standard-libraries"><a class="header" href="#supplying-vhdl-standard-libraries">Supplying VHDL standard libraries</a></h3>
+<p><code>vhdl_libraries</code> is optional and empty by default. Left empty, the
+generator works from the parse tree alone: it maps each port's terminal
+type mark (<code>std_logic</code>, <code>unsigned</code>, <code>integer</code>, ...) onto a cocotb handle
+class, which covers designs whose ports are declared in terms of the
+standard types directly.</p>
+<p>Supplying the <code>STD</code> / <code>IEEE</code> sources lets a generator fully elaborate
+instead, so ports declared with project-local aliases and subtypes
+resolve through to their base types:</p>
+<pre><code class="language-python">cocotb_toolchain(
+    name = "my_cocotb_toolchain",
+    cocotb = "//path/to:cocotb_py_library",
+    simulators = {":cocotb_ghdl": "ghdl"},
+    vhdl_libraries = {
+        "@some_vhdl_std//:ieee_srcs": "ieee",
+        "@some_vhdl_std//:std_srcs": "std",
+    },
+)
+</code></pre>
+<p>Each entry maps a target whose files are <code>.vhd</code> sources to the VHDL
+library name they belong to; several targets may share a name.</p>
 <p>Per-simulator API and wiring details live in the
 <a href="./simulators.html">Simulators</a> section.</p>
 <p><strong>ATTRIBUTES</strong></p>
@@ -236,6 +269,8 @@ attribute; it's optional, but if set must name one of the keys in
 <tr><td style="text-align: left"><a id="cocotb_toolchain-default_sim"></a>default_sim</td><td style="text-align: left">An optional default simulator to use.</td><td style="text-align: left">String</td><td style="text-align: left">optional</td><td style="text-align: left"><code>""</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_toolchain-env"></a>env</td><td style="text-align: left">Environment variables to set whenever the toolchain invokes a simulator. Applied to every sim registered in <code>simulators</code>; for sim-specific vars (license server, install root, etc.) prefer the per-<code>cocotb_*_sim</code> <code>env</code> attr instead. Precedence at test time: toolchain <code>env</code> &lt; sim <code>env</code> &lt; rule-level <code>cocotb_test(env = ...)</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: String -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
 <tr><td style="text-align: left"><a id="cocotb_toolchain-simulators"></a>simulators</td><td style="text-align: left">A mapping of <code>cocotb_*_sim</code> targets to their matching simulator names. Every target must provide <code>CocotbSimInfo</code>.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: Label -&gt; String</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_toolchain-stubgen"></a>stubgen</td><td style="text-align: left">The stub generator <code>cocotb_stubgen</code> runs. Defaults to the generator shipped with <code>rules_cocotb</code>; override it to swap in a generator that understands project-specific HDL type packages. A replacement must accept repeated <code>--stub SRC OUTPUT METADATA MODULE_IMPORT_PATH</code> groups and repeated <code>--dep-metadata PATH</code> flags, writing a Python stub to <code>OUTPUT</code> and a JSON record of the module's import path and exported class names to <code>METADATA</code>.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels">Label</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>"@rules_cocotb//tools/stubgen"</code></td></tr>
+<tr><td style="text-align: left"><a id="cocotb_toolchain-vhdl_libraries"></a>vhdl_libraries</td><td style="text-align: left">Optional VHDL standard library sources for <code>stubgen</code>, keyed by the library name each target's files belong to. A generator that can fully elaborate uses these to resolve aliases and subtypes down to their base types; the bundled generator works from the parse tree alone and ignores them.</td><td style="text-align: left"><a href="https://bazel.build/rules/lib/dict">Dictionary: Label -&gt; String</a></td><td style="text-align: left">optional</td><td style="text-align: left"><code>{}</code></td></tr>
 </tbody></table>
 </div>
                     </main>
@@ -246,7 +281,7 @@ attribute; it's optional, but if set must name one of the keys in
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="simulators.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="cocotb_stubgen.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -260,7 +295,7 @@ attribute; it's optional, but if set must name one of the keys in
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="simulators.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="cocotb_stubgen.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
