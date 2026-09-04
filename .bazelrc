@@ -30,7 +30,7 @@ build --incompatible_default_to_explicit_init_py
 build --incompatible_autoload_externally=
 
 ###############################################################################
-## Python lint / format aspects (rules_venv)
+## Lint / format aspects (rules_venv, rules_rust)
 ##
 ## Point each tool at the repo-root config unconditionally — the
 ## `--@rules_venv//python/<tool>:config=...` settings only apply when the
@@ -57,11 +57,21 @@ build --@rules_venv//python/pylint:config=//:.pylintrc.toml
 build:pylint --aspects=@rules_venv//python/pylint:py_pylint_aspect.bzl%py_pylint_aspect
 build:pylint --output_groups=+py_pylint_checks
 
-# Composite — run all four at once: `bazel build --config=strict //...`.
+# rustfmt --------------------------------------------------------------------
+build:rustfmt --aspects=@rules_rust//rust:defs.bzl%rustfmt_aspect
+build:rustfmt --output_groups=+rustfmt_checks
+
+# clippy ---------------------------------------------------------------------
+build:clippy --aspects=@rules_rust//rust:defs.bzl%rust_clippy_aspect
+build:clippy --output_groups=+clippy_checks
+
+# Composite — run everything at once: `bazel build --config=strict //...`.
 build:strict --config=black
 build:strict --config=isort
 build:strict --config=mypy
 build:strict --config=pylint
+build:strict --config=rustfmt
+build:strict --config=clippy
 test --config=strict
 
 ###############################################################################

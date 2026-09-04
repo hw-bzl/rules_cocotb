@@ -15,7 +15,7 @@ A `cocotb_test` is a Bazel `test` target that pairs:
 - one or more Python `cocotb` test sources, and
 - a `cocotb_toolchain` that picks the simulator.
 
-The two top-level rules are documented under
+The top-level rules are documented under
 [Rules](./rules.md); the per-simulator integrations live under
 [Simulators](./simulators.md).
 
@@ -120,5 +120,8 @@ with `vhdl_library` from `rules_vhdl` and pick `sim = "ghdl"`.
   define a custom toolchain — for selecting a different default
   simulator, narrowing the set of simulators, or wiring in a
   bring-your-own-install `cocotb_*_sim`.
+- The [`cocotb_stubgen`](./cocotb_stubgen.md) reference covers generating
+  typed Python stubs from an HDL library, so a testbench's `dut`
+  parameter type-checks instead of being an untyped `HierarchyObject`.
 - The [Simulators](./simulators.md) section lists every built-in
   simulator integration and per-simulator status.

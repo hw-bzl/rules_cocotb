@@ -62,16 +62,35 @@ cocotb_verilator_sim(
     deps = ["@verilator//:verilated"],
 )
 
+# `:cocotb_verilator` is incompatible on Windows (see above), and an
+# incompatible dependency makes its dependents incompatible too. Leaving it
+# in `simulators` there would replace this target's `ToolchainInfo` with
+# `IncompatiblePlatformProvider`, so every rule resolving
+# `//cocotb:toolchain_type` -- including `cocotb_stubgen`, which needs no
+# simulator at all -- would fail analysis with "resolved to target
+# //cocotb/toolchain:cocotb_toolchain, but that target does not provide
+# ToolchainInfo". Selecting the entry out keeps the toolchain itself
+# compatible everywhere.
 cocotb_toolchain(
     name = "cocotb_toolchain",
     cocotb = ":cocotb",
-    default_sim = "verilator",
-    simulators = {
-        ":cocotb_ghdl": "ghdl",
-        ":cocotb_icarus": "icarus",
-        ":cocotb_nvc": "nvc",
-        ":cocotb_verilator": "verilator",
-    },
+    default_sim = select({
+        "@platforms//os:windows": "icarus",
+        "//conditions:default": "verilator",
+    }),
+    simulators = select({
+        "@platforms//os:windows": {
+            ":cocotb_ghdl": "ghdl",
+            ":cocotb_icarus": "icarus",
+            ":cocotb_nvc": "nvc",
+        },
+        "//conditions:default": {
+            ":cocotb_ghdl": "ghdl",
+            ":cocotb_icarus": "icarus",
+            ":cocotb_nvc": "nvc",
+            ":cocotb_verilator": "verilator",
+        },
+    }),
 )
 
 toolchain(

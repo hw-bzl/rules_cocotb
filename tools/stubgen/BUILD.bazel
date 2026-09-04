@@ -1,16 +1,32 @@
-load("@rules_venv//python:defs.bzl", "py_binary", "py_library")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
 
-py_library(
-    name = "stubgen_lib",
-    srcs = ["stubgen.py"],
-    imports = ["."],
-    visibility = ["//tests/stubgen:__pkg__"],
-)
-
-py_binary(
+# The stub generator `cocotb_stubgen` runs, and the default value of
+# `cocotb_toolchain.stubgen`. Public because that default resolves in
+# consumer builds.
+rust_binary(
     name = "stubgen",
-    srcs = ["stubgen.py"],
-    imports = ["."],
-    main = "stubgen.py",
+    srcs = glob(["src/**/*.rs"]),
+    data = ["//tools/stubgen/private:verible_syntax"],
+    edition = "2021",
+    rustc_env = {
+        "VERIBLE_SYNTAX_RLOCATIONPATH": "$(rlocationpath //tools/stubgen/private:verible_syntax)",
+    },
     visibility = ["//visibility:public"],
+    deps = [
+        "@cocotb_stubgen_crates//:clap",
+        "@cocotb_stubgen_crates//:serde_json",
+        "@cocotb_stubgen_crates//:vhdl_lang",
+        "@rules_rust//tools/runfiles",
+    ],
 )
+
+rust_test(
+    name = "stubgen_test",
+    crate = ":stubgen",
+    edition = "2021",
+)
+
+exports_files([
+    "Cargo.lock",
+    "Cargo.toml",
+])

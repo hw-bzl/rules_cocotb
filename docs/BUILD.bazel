@@ -12,6 +12,15 @@ stardoc(
 )
 
 stardoc(
+    name = "cocotb_stubgen_doc",
+    out = "src/cocotb_stubgen.md",
+    input = "//cocotb:cocotb_stubgen.bzl",
+    table_of_contents_template = "@io_bazel_stardoc//stardoc:templates/markdown_tables/table_of_contents.vm",
+    tags = ["manual"],
+    deps = ["//cocotb:bzl_lib"],
+)
+
+stardoc(
     name = "cocotb_toolchain_doc",
     out = "src/cocotb_toolchain.md",
     input = "//cocotb:cocotb_toolchain.bzl",
@@ -120,6 +129,7 @@ mdbook(
         ":cocotb_nvc_sim_doc",
         ":cocotb_questa_sim_doc",
         ":cocotb_riviera_sim_doc",
+        ":cocotb_stubgen_doc",
         ":cocotb_test_doc",
         ":cocotb_toolchain_doc",
         ":cocotb_vcs_sim_doc",

@@ -6,6 +6,8 @@ load("@rules_venv//python/venv:defs.bzl", "py_venv_common")
 load("@rules_verilog//verilog:defs.bzl", "VerilogInfo")
 load("@rules_vhdl//vhdl:defs.bzl", "VhdlInfo")
 
+_TOOLCHAIN_TYPE = Label("//cocotb:toolchain_type")
+
 _CocotbStubsInfo = provider(
     doc = "HDL-derived Python stub files. Internal to `cocotb_stubgen`.",
     fields = {
@@ -68,6 +70,15 @@ def _cocotb_stubgen_aspect_impl(target, ctx):
 
     dep_metadata_depset = depset(transitive = transitive_metadata)
 
+    toolchain = ctx.toolchains[_TOOLCHAIN_TYPE]
+
+    # Optional STD/IEEE sources. Without them the generator maps each
+    # port's terminal type mark onto a handle class; with them it can
+    # elaborate aliases and subtypes down to their base types.
+    vhdl_library_files = []
+    for files in toolchain.vhdl_libraries.values():
+        vhdl_library_files.extend(files)
+
     # One `stubgen` invocation per library. The tool internally does
     # phase 1 (extract + metadata dump for every src) then phase 2 (render
     # every .py), sharing sibling class names in-process. Batching this
@@ -78,6 +89,11 @@ def _cocotb_stubgen_aspect_impl(target, ctx):
     if srcs:
         stubgen_args = ctx.actions.args()
         stubgen_args.add_all(dep_metadata_depset, before_each = "--dep-metadata")
+        for name in sorted(toolchain.vhdl_libraries):
+            for file in toolchain.vhdl_libraries[name]:
+                stubgen_args.add("--vhdl-library")
+                stubgen_args.add(name)
+                stubgen_args.add(file)
         for src in srcs:
             stem = paths.split_extension(src.basename)[0]
             stub = ctx.actions.declare_file(stem + ".py")
@@ -100,9 +116,12 @@ def _cocotb_stubgen_aspect_impl(target, ctx):
             metadata_files.append(meta)
 
         ctx.actions.run(
-            executable = ctx.executable._stubgen,
+            executable = toolchain.stubgen,
             arguments = [stubgen_args],
-            inputs = depset(srcs, transitive = [dep_metadata_depset]),
+            inputs = depset(
+                srcs + vhdl_library_files,
+                transitive = [dep_metadata_depset],
+            ),
             outputs = stubs + metadata_files,
             mnemonic = "CocotbStubgen",
             progress_message = "CocotbStubgen %{label}",
@@ -144,17 +163,20 @@ Deduplication is inherent: aspects are keyed on `(aspect, target)`
 and actions on their outputs, so the same `vhdl_library` covered by
 any number of `cocotb_stubgen` targets runs its `stubgen` action
 exactly once per build.
+
+The generator binary and its optional VHDL standard libraries come from
+`cocotb_toolchain` rather than implicit attrs, so a project can point
+them at its own generator and type packages without patching this rule.
+They ride on the existing `cocotb_toolchain` because nothing about the
+generator varies between the libraries in one graph — every HDL library
+the aspect touches wants the same tool, and any project generating stubs
+already registers a `cocotb_toolchain` to run the tests that consume
+them.
 """,
     implementation = _cocotb_stubgen_aspect_impl,
     attr_aspects = ["deps", "verilog_deps", "vhdl_deps"],
     required_providers = [[VhdlInfo], [VerilogInfo]],
-    attrs = {
-        "_stubgen": attr.label(
-            default = Label("//tools/stubgen"),
-            executable = True,
-            cfg = "exec",
-        ),
-    },
+    toolchains = [str(_TOOLCHAIN_TYPE)],
 )
 
 def _cocotb_stubgen_impl(ctx):
@@ -217,9 +239,19 @@ async def test(dut: Dut) -> None:
 
 VHDL ports / generics / architecture signals are typed against cocotb's
 handle hierarchy (`LogicObject`, `LogicArrayObject`, `IntegerObject`, ...).
-Verilog ports and parameters fall back to `typing.Any` — Verilog port
+Verilog ports, parameters and nets fall back to `typing.Any` — Verilog
 declarations are effectively untyped once `logic` / `wire` / `reg` are
-flattened.
+flattened. Instantiations in either language type as the instantiated
+entity's own stub class.
+
+Verilog is parsed without preprocessing, so ports supplied by a macro
+(`` module m(`MY_PORTS); ``) are omitted rather than guessed at.
+
+The generator itself comes from the registered
+[`cocotb_toolchain`](./cocotb_toolchain.md): its `stubgen` attr
+substitutes a different generator, and its optional `vhdl_libraries`
+attr supplies the `STD` / `IEEE` sources a generator needs to resolve
+project-local aliases and subtypes down to their base types.
 """,
     implementation = _cocotb_stubgen_impl,
     attrs = {

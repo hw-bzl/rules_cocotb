@@ -1,0 +1,6 @@
+load(":verible_syntax.bzl", "verible_syntax")
+
+verible_syntax(
+    name = "verible_syntax",
+    visibility = ["//visibility:public"],
+)

@@ -5,6 +5,7 @@
 - [Rules](./rules.md)
   - [cocotb_test](./cocotb_test.md)
   - [cocotb_toolchain](./cocotb_toolchain.md)
+  - [cocotb_stubgen](./cocotb_stubgen.md)
 - [Simulators](./simulators.md)
   - [cocotb_ghdl_sim](./cocotb_ghdl_sim.md)
   - [cocotb_icarus_sim](./cocotb_icarus_sim.md)

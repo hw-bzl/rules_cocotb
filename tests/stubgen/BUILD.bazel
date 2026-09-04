@@ -3,15 +3,9 @@ load("@rules_verilog//verilog:defs.bzl", "verilog_library")
 load("@rules_vhdl//vhdl:defs.bzl", "vhdl_library")
 load("//cocotb:defs.bzl", "cocotb_stubgen", "cocotb_test")
 
-py_pytest_test(
-    name = "stubgen_test",
-    srcs = ["stubgen_test.py"],
-    args = ["--capture=no"],
-    deps = [
-        "//tools/stubgen:stubgen_lib",
-    ],
-)
-
+# The generator's own parsing and rendering is unit-tested in Rust; see
+# `//tools/stubgen:stubgen_test`. Everything here is integration coverage of
+# the aspect that drives it.
 vhdl_library(
     name = "counter",
     srcs = ["counter.vhd"],
@@ -105,6 +99,31 @@ py_pytest_test(
     srcs = ["sibling_pair_stubs_import_test.py"],
     deps = [
         ":sibling_pair_stubs",
+        "@cocotb_pip_deps//cocotb",
+    ],
+)
+
+# Verilog counterpart to `sibling_pair`: two `.sv` files in one
+# `verilog_library` where one instantiates the other, the instantiated one
+# declaring its ports non-ANSI.
+verilog_library(
+    name = "verilog_pair",
+    srcs = [
+        "verilog_inner.sv",
+        "verilog_top.sv",
+    ],
+)
+
+cocotb_stubgen(
+    name = "verilog_pair_stubs",
+    module = ":verilog_pair",
+)
+
+py_pytest_test(
+    name = "verilog_pair_stubs_import_test",
+    srcs = ["verilog_pair_stubs_import_test.py"],
+    deps = [
+        ":verilog_pair_stubs",
         "@cocotb_pip_deps//cocotb",
     ],
 )
