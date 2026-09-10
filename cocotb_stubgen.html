@@ -210,11 +210,11 @@ flattened. Instantiations in either language type as the instantiated
 entity's own stub class.</p>
 <p>Verilog is parsed without preprocessing, so ports supplied by a macro
 (<code>module m(`MY_PORTS);</code>) are omitted rather than guessed at.</p>
-<p>The generator itself comes from the registered
-<a href="./cocotb_toolchain.html"><code>cocotb_toolchain</code></a>: its <code>stubgen</code> attr
-substitutes a different generator, and its optional <code>vhdl_libraries</code>
-attr supplies the <code>STD</code> / <code>IEEE</code> sources a generator needs to resolve
-project-local aliases and subtypes down to their base types.</p>
+<p>The generator is the one <code>rules_cocotb</code> ships and is not swappable. No
+<code>cocotb_toolchain</code> is required either — stub generation is static
+analysis and runs no simulator. Registering one contributes only its
+optional <code>vhdl_libraries</code>, which the generator shipped today ignores;
+see <a href="./cocotb_toolchain.html"><code>cocotb_toolchain</code></a>.</p>
 <p><strong>ATTRIBUTES</strong></p>
 <div class="table-wrapper"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: left">Description</th><th style="text-align: left">Type</th><th style="text-align: left">Mandatory</th><th style="text-align: left">Default</th></tr></thead><tbody>
 <tr><td style="text-align: left"><a id="cocotb_stubgen-name"></a>name</td><td style="text-align: left">A unique name for this target.</td><td style="text-align: left"><a href="https://bazel.build/concepts/labels#target-names">Name</a></td><td style="text-align: left">required</td><td style="text-align: left"></td></tr>
