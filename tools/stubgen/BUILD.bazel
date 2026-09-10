@@ -1,8 +1,5 @@
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
 
-# The stub generator `cocotb_stubgen` runs, and the default value of
-# `cocotb_toolchain.stubgen`. Public because that default resolves in
-# consumer builds.
 rust_binary(
     name = "stubgen",
     srcs = glob(["src/**/*.rs"]),

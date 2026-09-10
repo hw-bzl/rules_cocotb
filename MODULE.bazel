@@ -40,9 +40,9 @@ register_toolchains(
     dev_dependency = True,
 )
 
-# Third-party crates for `//tools/stubgen`, the Rust stub generator that
-# `cocotb_toolchain.stubgen` defaults to. Not a dev dependency: a consumer
-# using `cocotb_stubgen` resolves that default and so needs this repo. No
+# Third-party crates for `//tools/stubgen`, the Rust stub generator the
+# `cocotb_stubgen` aspect runs. Not a dev dependency: a consumer using
+# `cocotb_stubgen` resolves that implicit dep and so needs this repo. No
 # `rust.toolchain()` call is needed -- `rules_rust` registers
 # `@rust_toolchains//:all` from its own `MODULE.bazel`.
 crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")

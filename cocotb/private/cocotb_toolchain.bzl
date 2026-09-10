@@ -1,7 +1,12 @@
 """cocotb toolchain rules"""
 
 load("@rules_venv//python:py_info.bzl", "PyInfo")
+load("@rules_vhdl//vhdl:defs.bzl", "VhdlInfo")
 load(":cocotb_simulators.bzl", "CocotbSimInfo")
+
+# The VHDL standard libraries stub generation knows how to use. Kept sorted:
+# it is compared against a sorted list of what a toolchain actually supplied.
+_STUBGEN_VHDL_LIBRARIES = ["ieee", "std"]
 
 def _cocotb_toolchain_impl(ctx):
     simulators = {}
@@ -13,18 +18,32 @@ def _cocotb_toolchain_impl(ctx):
             ))
         simulators[value] = target
 
-    vhdl_libraries = {}
-    for target, name in ctx.attr.vhdl_libraries.items():
-        vhdl_libraries.setdefault(name, []).extend(
-            target[DefaultInfo].files.to_list(),
-        )
+    # Direct entries plus their transitive `deps`, so naming an `ieee`
+    # library that itself deps on `std` brings `std` along. Collected through
+    # a depset so listing both explicitly doesn't duplicate either.
+    direct = [target[VhdlInfo] for target in ctx.attr.vhdl_libraries]
+    vhdl_libraries = depset(
+        direct,
+        transitive = [info.deps for info in direct],
+    ).to_list()
+
+    # All of the expected libraries or none of them. A partial set is rejected
+    # rather than honored because an elaborating generator degrades a type
+    # mark it can't resolve to `Any` silently rather than erroring, so half a
+    # set yields quietly worse stubs than supplying nothing.
+    found = sorted({info.library: None for info in vhdl_libraries})
+    if found and found != _STUBGEN_VHDL_LIBRARIES:
+        fail("{}: vhdl_libraries must provide exactly the {} libraries or none at all, got {}. A library's name comes from `vhdl_library(library = ...)` and defaults to its target name; names reached through `deps` count too.".format(
+            ctx.label,
+            _STUBGEN_VHDL_LIBRARIES,
+            found,
+        ))
 
     return [platform_common.ToolchainInfo(
         cocotb = ctx.attr.cocotb,
         simulators = simulators,
         default_sim = ctx.attr.default_sim or None,
         env = ctx.attr.env,
-        stubgen = ctx.attr.stubgen[DefaultInfo].files_to_run,
         vhdl_libraries = vhdl_libraries,
         label = ctx.label,
     )]
@@ -97,49 +116,55 @@ chooses which simulator runs when a `cocotb_test` omits its own `sim`
 attribute; it's optional, but if set must name one of the keys in
 `simulators`.
 
-### Overriding the stub generator
-
-`cocotb_stubgen` resolves this same toolchain to find the tool that turns
-HDL sources into typed Python stubs, so a project that needs custom type
-mapping sets `stubgen` here rather than registering anything extra:
-
-```python
-cocotb_toolchain(
-    name = "my_cocotb_toolchain",
-    cocotb = "//path/to:cocotb_py_library",
-    simulators = {":cocotb_ghdl": "ghdl"},
-    stubgen = "//path/to:my_stubgen",
-)
-```
-
-Leaving it unset uses the generator shipped with `rules_cocotb`.
-
 ### Supplying VHDL standard libraries
 
-`vhdl_libraries` is optional and empty by default. Left empty, the
-generator works from the parse tree alone: it maps each port's terminal
-type mark (`std_logic`, `unsigned`, `integer`, ...) onto a cocotb handle
-class, which covers designs whose ports are declared in terms of the
-standard types directly.
+`vhdl_libraries` is optional and empty by default, and is the only part
+of this toolchain that `cocotb_stubgen` reads. It reads it optionally:
+stub generation is static analysis of HDL sources and runs no simulator,
+so a project that only wants typed DUT handles need not register a
+`cocotb_toolchain` at all.
 
-Supplying the `STD` / `IEEE` sources lets a generator fully elaborate
-instead, so ports declared with project-local aliases and subtypes
-resolve through to their base types:
+The generator shipped today works from the parse tree alone — it maps
+each port's terminal type mark (`std_logic`, `unsigned`, `integer`, ...)
+onto a cocotb handle class, which covers designs whose ports are declared
+in terms of the standard types directly — and so **ignores these
+sources**. The attr reserves the interface for full elaboration, which
+would additionally resolve project-local aliases and subtypes through to
+their base types; until that lands, setting it only adds the files to
+each stubgen action's inputs:
 
 ```python
+vhdl_library(
+    name = "std",
+    srcs = glob(["std/*.vhdl"]),
+)
+
+vhdl_library(
+    name = "ieee",
+    srcs = glob(["ieee2008/*.vhdl"]),
+    deps = [":std"],
+)
+
 cocotb_toolchain(
     name = "my_cocotb_toolchain",
     cocotb = "//path/to:cocotb_py_library",
     simulators = {":cocotb_ghdl": "ghdl"},
-    vhdl_libraries = {
-        "@some_vhdl_std//:ieee_srcs": "ieee",
-        "@some_vhdl_std//:std_srcs": "std",
-    },
+    vhdl_libraries = [":ieee"],
 )
 ```
 
-Each entry maps a target whose files are `.vhd` sources to the VHDL
-library name they belong to; several targets may share a name.
+Each entry is a `vhdl_library`; the VHDL library name comes from its
+`library` attr, which defaults to the target name. Libraries reached
+through `deps` count too, so listing `:ieee` above is enough to pull in
+`:std`. Several targets may share a library name.
+
+Only `ieee` and `std` are accepted, and the set must be complete: a
+partial set is rejected rather than honored, because unresolved types
+degrade to `Any` silently instead of erroring.
+
+Note that `@ghdl//:vhdl_libs_v08` is *not* usable here: it is a compiled
+GHDL library artifact for `cocotb_ghdl_sim(vhdl_libs = ...)`, whereas
+this attr wants VHDL sources for the parser.
 
 Per-simulator API and wiring details live in the
 [Simulators](./simulators.md) section.
@@ -175,32 +200,16 @@ Per-simulator API and wiring details live in the
                 [CocotbSimInfo],
             ],
         ),
-        "stubgen": attr.label(
+        "vhdl_libraries": attr.label_list(
             doc = (
-                "The stub generator `cocotb_stubgen` runs. Defaults to the " +
-                "generator shipped with `rules_cocotb`; override it to swap " +
-                "in a generator that understands project-specific HDL type " +
-                "packages. A replacement must accept repeated " +
-                "`--stub SRC OUTPUT METADATA MODULE_IMPORT_PATH` groups and " +
-                "repeated `--dep-metadata PATH` flags, writing a Python stub " +
-                "to `OUTPUT` and a JSON record of the module's import path " +
-                "and exported class names to `METADATA`."
+                "Optional VHDL standard library sources for `stubgen`, as " +
+                "`vhdl_library` targets. Supply all of {} (counting ".format(_STUBGEN_VHDL_LIBRARIES) +
+                "libraries reached through `deps`) or leave this empty. " +
+                "Reserved for full elaboration; the generator shipped today " +
+                "ignores them."
             ),
-            default = Label("//tools/stubgen"),
-            executable = True,
-            cfg = "exec",
-        ),
-        "vhdl_libraries": attr.label_keyed_string_dict(
-            doc = (
-                "Optional VHDL standard library sources for `stubgen`, " +
-                "keyed by the library name each target's files belong to. " +
-                "A generator that can fully elaborate uses these to resolve " +
-                "aliases and subtypes down to their base types; the bundled " +
-                "generator works from the parse tree alone and ignores them."
-            ),
-            allow_files = [".vhd", ".vhdl"],
-            default = {},
-            cfg = "exec",
+            providers = [VhdlInfo],
+            cfg = "target",
         ),
     },
 )
