@@ -17,3 +17,4 @@
   - [cocotb_dsim_sim](./cocotb_dsim_sim.md)
   - [cocotb_riviera_sim](./cocotb_riviera_sim.md)
   - [cocotb_activehdl_sim](./cocotb_activehdl_sim.md)
+- [Building simulators](./cocotb_simulator_build.md)

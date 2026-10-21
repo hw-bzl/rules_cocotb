@@ -6,6 +6,7 @@ load("@rules_verilog//verilog:defs.bzl", "VerilogInfo")
 load("@rules_vhdl//vhdl:defs.bzl", "VhdlInfo")
 load(":cocotb_precompiled_library_info.bzl", "CocotbPrecompiledLibraryInfo")
 load(":cocotb_simulators.bzl", "CocotbSimInfo", "cocotb_sim_compile")
+load(":cocotb_test_info.bzl", "CocotbTestInfo")
 
 # cocotb simulator name -> precompiled-library format family. Only sims with
 # a precompiled-library concept appear here; open-source sims
@@ -284,6 +285,13 @@ def _cocotb_test_impl(ctx):
             executable = executable,
             files = depset([executable]),
             runfiles = runfiles,
+        ),
+        CocotbTestInfo(
+            build_sources = sim_build_sources,
+            module = ctx.attr.module,
+            params = ctx.attr.params,
+            sim = sim,
+            sim_opts = ctx.attr.sim_opts,
         ),
         coverage_common.instrumented_files_info(
             ctx,

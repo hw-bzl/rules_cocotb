@@ -1,0 +1,64 @@
+load("@rules_verilog//verilog:defs.bzl", "verilog_library")
+load("@rules_vhdl//vhdl:defs.bzl", "vhdl_library")
+load("//cocotb:defs.bzl", "cocotb_test")
+load(":cocotb_test_info_test.bzl", "cocotb_test_info_test")
+
+verilog_library(
+    name = "adder",
+    srcs = ["adder.sv"],
+)
+
+# Only analysed by `cocotb_test_info_test`, never run.
+cocotb_test(
+    name = "adder_test",
+    srcs = ["adder_test.py"],
+    module = ":adder",
+    params = ["WIDTH=8"],
+    sim = "verilator",
+    sim_opts = ["--public-params"],
+    tags = ["manual"],
+    # Verilator is currently only supported on linux x86_64 systems.
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+)
+
+# Verilator builds the simulator ahead of the test.
+cocotb_test_info_test(
+    name = "cocotb_test_info_test",
+    module = ":adder",
+    sim = "verilator",
+    sim_opts = ["--public-params"],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+    target_under_test = ":adder_test",
+)
+
+vhdl_library(
+    name = "adder_vhdl",
+    srcs = ["adder.vhd"],
+)
+
+# Only analysed by `cocotb_test_info_test_time_build_test`, never run.
+cocotb_test(
+    name = "adder_vhdl_test",
+    srcs = ["adder_test.py"],
+    module = ":adder_vhdl",
+    params = ["WIDTH=8"],
+    sim = "ghdl",
+    tags = ["manual"],
+    target_compatible_with = ["@platforms//os:linux"],
+)
+
+# GHDL builds the HDL at test time.
+cocotb_test_info_test(
+    name = "cocotb_test_info_test_time_build_test",
+    build_sources = ["adder.vhd"],
+    module = ":adder_vhdl",
+    sim = "ghdl",
+    target_compatible_with = ["@platforms//os:linux"],
+    target_under_test = ":adder_vhdl_test",
+)

@@ -42,6 +42,7 @@ load(
 )
 load(
     ":cocotb_test.bzl",
+    _CocotbTestInfo = "CocotbTestInfo",
     _cocotb_test = "cocotb_test",
 )
 load(
@@ -63,6 +64,7 @@ load(
 
 CocotbPrecompiledLibraryInfo = _CocotbPrecompiledLibraryInfo
 CocotbSimInfo = _CocotbSimInfo
+CocotbTestInfo = _CocotbTestInfo
 cocotb_activehdl_sim = _cocotb_activehdl_sim
 cocotb_dsim_sim = _cocotb_dsim_sim
 cocotb_ghdl_sim = _cocotb_ghdl_sim

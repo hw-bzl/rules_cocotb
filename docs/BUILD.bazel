@@ -30,6 +30,15 @@ stardoc(
 )
 
 stardoc(
+    name = "cocotb_simulator_build_doc",
+    out = "src/cocotb_simulator_build.md",
+    input = "//cocotb:cocotb_simulator_build.bzl",
+    table_of_contents_template = "@io_bazel_stardoc//stardoc:templates/markdown_tables/table_of_contents.vm",
+    tags = ["manual"],
+    deps = ["//cocotb:bzl_lib"],
+)
+
+stardoc(
     name = "cocotb_ghdl_sim_doc",
     out = "src/cocotb_ghdl_sim.md",
     input = "//cocotb:cocotb_ghdl_sim.bzl",
@@ -129,6 +138,7 @@ mdbook(
         ":cocotb_nvc_sim_doc",
         ":cocotb_questa_sim_doc",
         ":cocotb_riviera_sim_doc",
+        ":cocotb_simulator_build_doc",
         ":cocotb_stubgen_doc",
         ":cocotb_test_doc",
         ":cocotb_toolchain_doc",

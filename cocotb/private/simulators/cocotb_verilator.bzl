@@ -134,6 +134,109 @@ def _cc_import_for(ctx, files):
         ),
     )
 
+def verilator_flags(*, top, params, coverage):
+    """Verilator code-generation flags for a cocotb simulator.
+
+    Every Verilator build of a cocotb simulator uses these, so that all of
+    them generate the same model.
+
+    Args:
+        top (str): The top-level module name.
+        params (list[str]): Verilog parameter overrides, as `NAME=VALUE`.
+        coverage (bool): Whether to instrument the model for coverage.
+
+    Returns:
+        list[str]: Flags to pass after the Verilator executable. The caller
+        adds `--Mdir`, the cocotb main, the HDL sources, and the user's
+        `sim_opts`.
+    """
+    flags = ["--no-std", "--cc", "--exe", "-DCOCOTB_SIM=1", "--top-module", top]
+    flags.extend(["-G" + param for param in params])
+    flags.extend(["--vpi", "--public-flat-rw", "--prefix", "Vtop", "-o", top])
+
+    # Instrument for line/toggle/user coverage when the DUT is being
+    # analysed under `bazel coverage`. The runtime cost is collected into
+    # `coverage.dat` in the sim's cwd; `verilator_coverage_bin` translates
+    # that to lcov which the wrapper writes to `COVERAGE_OUTPUT_FILE`.
+    if coverage:
+        flags.extend(["--coverage-line", "--coverage-toggle", "--coverage-user"])
+    return flags
+
+def verilator_cc_inputs(ctx, sim_info, *, sim_opts, coverage):
+    """The C++ toolchain inputs for compiling and linking a verilated model.
+
+    Every Verilator build of a cocotb simulator uses these, so that all of
+    them compile and link the same way.
+
+    Args:
+        ctx (ctx): The rule's context object. The rule must declare the
+            `@rules_cc//cc:toolchain_type` and
+            `@rules_python//python/cc:toolchain_type` toolchains and the
+            `cpp` fragment.
+        sim_info (CocotbSimVerilatorInfo): The Verilator simulator.
+        sim_opts (list[str]): The user's Verilator flags, which select the
+            trace format.
+        coverage (bool): Whether the model is instrumented for coverage.
+
+    Returns:
+        struct: `cc_toolchain`, `feature_configuration`, `defines`
+        (`list[str]` as `NAME=VALUE`), `compilation_contexts`,
+        `linking_contexts`, and `runtime_libs` (`depset[File]` of the C++
+        runtime libraries the toolchain links dynamically).
+    """
+    cc_toolchain = find_cpp_toolchain(ctx)
+    feature_configuration = cc_common.configure_features(
+        ctx = ctx,
+        cc_toolchain = cc_toolchain,
+        requested_features = ctx.features,
+        unsupported_features = ctx.disabled_features,
+    )
+
+    defines = {"COCOTB_SIM": "1"}
+    if "--trace" in sim_opts:
+        defines.update({
+            "VM_TRACE": "1",
+            "VM_TRACE_FST": "0",
+            "VM_TRACE_VCD": "1",
+        })
+    if "--trace-fst" in sim_opts:
+        defines.update({
+            "VM_TRACE": "1",
+            "VM_TRACE_FST": "1",
+            "VM_TRACE_VCD": "0",
+        })
+    if "VM_TRACE_FST" in defines:
+        defines.update({"VM_TRACE_VCD": "1"})
+
+    # When verilator is invoked with `--coverage-*`, it generates an
+    # instrumented model — but cocotb's `verilator.cpp` only calls
+    # `VerilatedCov::write()` under `#if VM_COVERAGE`. Verilator's own
+    # generated headers set `VM_COVERAGE` when its `--coverage-*` flags
+    # were passed; mirror that here so the cocotb-side `verilator.cpp`
+    # wrapper actually writes `coverage.dat` at sim exit.
+    if coverage:
+        defines["VM_COVERAGE"] = "1"
+
+    linking_contexts = [dep.linking_context for dep in sim_info.cc_deps]
+    py_cc_toolchain = ctx.toolchains["@rules_python//python/cc:toolchain_type"].py_cc_toolchain
+    for info_id, info in py_cc_toolchain.libs.providers_map.items():
+        if info_id == "CcInfo":
+            linking_contexts.append(info.linking_context)
+
+    return struct(
+        cc_toolchain = cc_toolchain,
+        feature_configuration = feature_configuration,
+        defines = ["{}={}".format(k, v) for k, v in defines.items()],
+        compilation_contexts = [dep.compilation_context for dep in sim_info.cc_deps],
+        linking_contexts = linking_contexts,
+        # The C++ runtime libraries the toolchain links against dynamically
+        # (e.g. libc++.so.1) are not part of `linking_contexts`, so carry
+        # them along or the simulator fails to start.
+        runtime_libs = cc_toolchain.dynamic_runtime_lib(
+            feature_configuration = feature_configuration,
+        ),
+    )
+
 def verilator_compile(ctx, simulator, module, sim_opts):
     """Compile a verilator executable wired against cocotb's VPI plugin.
 
@@ -169,32 +272,15 @@ def verilator_compile(ctx, simulator, module, sim_opts):
 
     verilator_output = ctx.actions.declare_directory(out_prefix + ".build")
 
+    # `ctx.coverage_instrumented()` with no arg checks the test rule itself
+    # (typically False); the `module` dep is what carries
+    # `InstrumentedFilesInfo`, so probe there.
+    coverage = ctx.coverage_instrumented(module)
+
     args = ctx.actions.args()
     args.add(sim_info.simulator)
-    args.add("--no-std")
-    args.add("--cc")
-    args.add("--exe")
     args.add("--Mdir", verilator_output.path)
-    args.add("-DCOCOTB_SIM=1")
-    args.add("--top-module", module_top)
-    args.add_all(ctx.attr.params, format_each = "-G%s")
-    args.add("--vpi")
-    args.add("--public-flat-rw")
-    args.add("--prefix", "Vtop")
-    args.add("-o", module_top)
-
-    # Instrument for line/toggle/user coverage when the DUT is being
-    # analysed under `bazel coverage`. `ctx.coverage_instrumented()`
-    # with no arg checks the test rule itself (typically False); the
-    # `module` dep is what carries `InstrumentedFilesInfo`, so probe
-    # there. The runtime cost is collected into `coverage.dat` in the
-    # sim's cwd; `verilator_coverage_bin` translates that to lcov which
-    # the wrapper writes to `COVERAGE_OUTPUT_FILE`.
-    if ctx.coverage_instrumented(module):
-        args.add("--coverage-line")
-        args.add("--coverage-toggle")
-        args.add("--coverage-user")
-
+    args.add_all(verilator_flags(top = module_top, params = ctx.attr.params, coverage = coverage))
     args.add(sim_info.main)
 
     # Pass only compilable sources (`.v` / `.sv`) as command-line inputs.
@@ -233,40 +319,9 @@ def verilator_compile(ctx, simulator, module, sim_opts):
         tools = [sim_info.copy_tree],
     )
 
-    cc_toolchain = find_cpp_toolchain(ctx)
-    feature_configuration = cc_common.configure_features(
-        ctx = ctx,
-        cc_toolchain = cc_toolchain,
-        requested_features = ctx.features,
-        unsupported_features = ctx.disabled_features,
-    )
-
-    defines = {"COCOTB_SIM": "1"}
-    if "--trace" in sim_opts:
-        defines.update({
-            "VM_TRACE": "1",
-            "VM_TRACE_FST": "0",
-            "VM_TRACE_VCD": "1",
-        })
-    if "--trace-fst" in sim_opts:
-        defines.update({
-            "VM_TRACE": "1",
-            "VM_TRACE_FST": "1",
-            "VM_TRACE_VCD": "0",
-        })
-    if "VM_TRACE_FST" in defines:
-        defines.update({"VM_TRACE_VCD": "1"})
-
-    # When verilator is invoked with `--coverage-*`, it generates an
-    # instrumented model — but cocotb's `verilator.cpp` only calls
-    # `VerilatedCov::write()` under `#if VM_COVERAGE`. Verilator's own
-    # generated headers set `VM_COVERAGE` when its `--coverage-*` flags
-    # were passed; mirror that here so the cocotb-side `verilator.cpp`
-    # wrapper actually writes `coverage.dat` at sim exit.
-    if ctx.coverage_instrumented(module):
-        defines["VM_COVERAGE"] = "1"
-
-    compilation_contexts = [dep.compilation_context for dep in sim_info.cc_deps]
+    cc_inputs = verilator_cc_inputs(ctx, sim_info, sim_opts = sim_opts, coverage = coverage)
+    cc_toolchain = cc_inputs.cc_toolchain
+    feature_configuration = cc_inputs.feature_configuration
     _compilation_context, compilation_outputs = cc_common.compile(
         name = ctx.label.name,
         actions = ctx.actions,
@@ -275,17 +330,11 @@ def verilator_compile(ctx, simulator, module, sim_opts):
         user_compile_flags = sim_info.copts,
         srcs = [verilator_output_cpp],
         includes = [verilator_output_hpp.path],
-        defines = ["{}={}".format(k, v) for k, v in defines.items()],
+        defines = cc_inputs.defines,
         public_hdrs = [verilator_output_hpp],
-        compilation_contexts = compilation_contexts,
+        compilation_contexts = cc_inputs.compilation_contexts,
     )
-
-    linking_contexts = [dep.linking_context for dep in sim_info.cc_deps]
-
-    py_cc_toolchain = ctx.toolchains["@rules_python//python/cc:toolchain_type"].py_cc_toolchain
-    for info_id, info in py_cc_toolchain.libs.providers_map.items():
-        if info_id == "CcInfo":
-            linking_contexts.append(info.linking_context)
+    linking_contexts = cc_inputs.linking_contexts
 
     # Archive the model's objects into a static library instead of handing
     # them to `cc_common.link` as raw `compilation_outputs`. Verilator's
@@ -330,12 +379,7 @@ def verilator_compile(ctx, simulator, module, sim_opts):
                 if lib.dynamic_library:
                     dynamic_libs.append(lib.dynamic_library)
 
-    # The C++ runtime libraries the toolchain links against dynamically (e.g.
-    # libc++.so.1) are not part of `linking_contexts`, so carry them along or
-    # the simulator fails to start.
-    runtime_libs = cc_toolchain.dynamic_runtime_lib(
-        feature_configuration = feature_configuration,
-    )
+    runtime_libs = cc_inputs.runtime_libs
 
     return CocotbSimOutputInfo(
         bin = linking_output.executable,
