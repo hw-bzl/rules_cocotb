@@ -183,6 +183,14 @@ def verilator_compile(ctx, simulator, module, sim_opts):
     args.add("--prefix", "Vtop")
     args.add("-o", module_top)
 
+    # Drop the `V e r i l a t i o n   R e p o r t` summary (module/file
+    # counts and walltime) that verilator prints on every successful
+    # run. With it present the action always has stdout and bazel echoes
+    # it for every compile. Warnings and errors are unaffected; the wider
+    # `--quiet` is deliberately not used because it also implies
+    # `--quiet-exit`, which hides the `Exiting due to N warning(s)` line.
+    args.add("--quiet-stats")
+
     # Instrument for line/toggle/user coverage when the DUT is being
     # analysed under `bazel coverage`. `ctx.coverage_instrumented()`
     # with no arg checks the test rule itself (typically False); the
